@@ -4,3 +4,13 @@ dist/
 .env*
 !.env.example
 .DS_Store
+
+# Codex workspace clone
+.codex-workspace/
+
+# Local Git-related file
+/FETCH_HEAD
+
+# Local visual QA screenshots
+qa-artifacts/redesign-after/
+qa-artifacts/redesign-before/
