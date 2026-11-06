@@ -1,0 +1,30 @@
+{
+  "contract": "UI_UX_AUDIT_REPORT.md: Modern Vietnamese Cooking App, mobile-first; bounded desktop layout; no horizontal overflow; persistent mobile navigation that does not cover content; clear incomplete-recipe and quantity states.",
+  "targetViewports": ["320x640", "375x812", "390x844", "768x1024", "1024x768", "1440x900"],
+  "accessibility": {
+    "status": "pass",
+    "evidence": "Mobile Lighthouse Accessibility score 100; color contrast audit passed. Manually verified labelled dialog, focus containment, Escape close, focus return, and visible focus treatment. Formal screen-reader testing remains outstanding."
+  },
+  "responsive": {
+    "status": "pass",
+    "evidence": "Browser emulation at 320x640, 375x812, 390x844, 768x1024, 1024x768, and 1440x900; document width equalled viewport at each. At 320px mobile shell reserves separate rows for CTA/navigation while main content scrolls independently."
+  },
+  "contentStates": {
+    "loading": {"status": "not-applicable", "reason": "Recipe and ingredient data are statically bundled; this interface has no asynchronous content-loading state."},
+    "empty": {"status": "pass", "evidence": "Empty fridge state explains the next action and provides the ingredient picker plus cook CTA."},
+    "error": {"status": "pass", "evidence": "Uploaded malformed JSON to the local backup import; app showed a clear invalid-structure alert. After dismissing it, the settings page remained usable and fridge stock stayed empty."},
+    "partial": {"status": "pass", "evidence": "Explore cards explicitly label Copper entries as ingredient-only with no instructions; detail shows missing amounts and source."},
+    "success": {"status": "pass", "evidence": "Adding a test egg updated stock count and recommendation; removing it restored the empty fridge."},
+    "permission": {"status": "not-applicable", "reason": "No camera, location, microphone, sign-in, or operating-system permission is requested by these tested screens."}
+  },
+  "renderedEvidence": [
+    {"viewport": "320x640", "artifact": "after/fridge-mobile-320.png", "observation": "Phone-small app shell, no horizontal overflow, CTA and navigation do not overlap the independently scrolling fridge content."},
+    {"viewport": "375x812", "artifact": "after/fridge-mobile-375.png", "observation": "Mobile fridge empty state and shell navigation."},
+    {"viewport": "390x844", "artifact": "after/fridge-mobile-390.png", "observation": "Mobile fridge empty state and CTA/navigation layout."},
+    {"viewport": "768x1024", "artifact": "after/fridge-tablet-768.png", "observation": "Tablet layout keeps the bounded content canvas and avoids horizontal overflow."},
+    {"viewport": "1024x768", "artifact": "after/fridge-tablet-1024.png", "observation": "Wide tablet layout with no horizontal overflow."},
+    {"viewport": "1440x900", "artifact": "after/fridge-desktop-1440.png", "observation": "Desktop fridge layout uses a bounded canvas and desktop navigation."},
+    {"viewport": "1440x900", "artifact": "after/explore-desktop-1440.png", "observation": "Explore catalog uses responsive recipe cards and visibly distinguishes ingredient-only records."},
+    {"viewport": "390x844", "artifact": "after/detail-mobile-390.png", "observation": "Full-height mobile recipe detail shows measured-data limitations and cooking steps."}
+  ]
+}

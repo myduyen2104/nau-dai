@@ -1,0 +1,337 @@
+{
+  "schemaVersion": 1,
+  "source": "https://copperapp.app/data/",
+  "license": "CC-BY-4.0",
+  "attribution": "Copper — https://copperapp.app/study/what-the-world-cooks.html",
+  "attributionUrl": "https://copperapp.app/study/what-the-world-cooks.html",
+  "importedAt": "2026-11-04T10:08:40.585Z",
+  "recipes": [
+    {
+      "id": "copper:vn-banh-xeo",
+      "slug": "vn-banh-xeo",
+      "name": "Bánh xèo",
+      "cuisine": "vietnamese",
+      "country": "Vietnam",
+      "countryCode": "VN",
+      "dataStatus": "ingredients_only",
+      "verificationStatus": "unverified",
+      "totalTimeMinutes": 220,
+      "difficulty": "medium",
+      "ingredients": [
+        {
+          "sourceName": "rice flour",
+          "ingredientId": "rice-flour",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "coconut milk",
+          "ingredientId": "coconut-milk",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "turmeric",
+          "ingredientId": "ginger-root",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "pork belly, sliced",
+          "ingredientId": "pork-belly",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "prawn",
+          "ingredientId": "shrimp",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "bean sprouts",
+          "ingredientId": "bean-sprout",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "spring onion",
+          "ingredientId": "scallion",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "lettuce",
+          "ingredientId": "lettuce",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "mixed herbs (mint, perilla)",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "fish sauce",
+          "ingredientId": "fish-sauce",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "sugar",
+          "ingredientId": "sugar",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "lime",
+          "ingredientId": "lime",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "garlic",
+          "ingredientId": "garlic",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "birds eye chili",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        }
+      ],
+      "instructions": [],
+      "source": {
+        "name": "Copper — traditional dishes of the world",
+        "datasetUrl": "https://copperapp.app/data/copper-dishes.json",
+        "recipeUrl": "https://copperapp.app/recipe/vn-banh-xeo.html",
+        "license": "CC-BY-4.0",
+        "attribution": "Copper — https://copperapp.app/study/what-the-world-cooks.html",
+        "attributionUrl": "https://copperapp.app/study/what-the-world-cooks.html"
+      }
+    },
+    {
+      "id": "copper:vn-bun-cha",
+      "slug": "vn-bun-cha",
+      "name": "Bún chả",
+      "cuisine": "vietnamese",
+      "country": "Vietnam",
+      "countryCode": "VN",
+      "dataStatus": "ingredients_only",
+      "verificationStatus": "unverified",
+      "totalTimeMinutes": 75,
+      "difficulty": "medium",
+      "ingredients": [
+        {
+          "sourceName": "pork mince",
+          "ingredientId": "ground-pork",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "pork belly",
+          "ingredientId": "pork-belly",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "rice vermicelli",
+          "ingredientId": "vermicelli",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "fish sauce",
+          "ingredientId": "fish-sauce",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "sugar",
+          "ingredientId": "sugar",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "lime",
+          "ingredientId": "lime",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "garlic",
+          "ingredientId": "garlic",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "rice vinegar",
+          "ingredientId": "rice-vinegar",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "birds eye chili",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "carrot",
+          "ingredientId": "carrot",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "lettuce",
+          "ingredientId": "lettuce",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "mixed herbs (mint, coriander, perilla)",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        }
+      ],
+      "instructions": [],
+      "source": {
+        "name": "Copper — traditional dishes of the world",
+        "datasetUrl": "https://copperapp.app/data/copper-dishes.json",
+        "recipeUrl": "https://copperapp.app/recipe/vn-bun-cha.html",
+        "license": "CC-BY-4.0",
+        "attribution": "Copper — https://copperapp.app/study/what-the-world-cooks.html",
+        "attributionUrl": "https://copperapp.app/study/what-the-world-cooks.html"
+      }
+    },
+    {
+      "id": "copper:vn-pho-bo",
+      "slug": "vn-pho-bo",
+      "name": "Phở bò",
+      "cuisine": "vietnamese",
+      "country": "Vietnam",
+      "countryCode": "VN",
+      "dataStatus": "ingredients_only",
+      "verificationStatus": "unverified",
+      "totalTimeMinutes": 240,
+      "difficulty": "hard",
+      "ingredients": [
+        {
+          "sourceName": "beef bones",
+          "ingredientId": "beef-bones",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "beef brisket",
+          "ingredientId": "beef-brisket",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "beef sirloin",
+          "ingredientId": "beef-sirloin",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "flat rice noodles",
+          "ingredientId": "pho-noodle",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "onion",
+          "ingredientId": "onion",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "ginger",
+          "ingredientId": "ginger",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "star anise",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "cinnamon stick",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "black cardamom",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "coriander seeds",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "cloves",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "sugar",
+          "ingredientId": "sugar",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "fish sauce",
+          "ingredientId": "fish-sauce",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "bean sprouts",
+          "ingredientId": "bean-sprout",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "thai basil",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "spring onion",
+          "ingredientId": "scallion",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "lime",
+          "ingredientId": "lime",
+          "quantity": null,
+          "unit": null
+        }
+      ],
+      "instructions": [],
+      "source": {
+        "name": "Copper — traditional dishes of the world",
+        "datasetUrl": "https://copperapp.app/data/copper-dishes.json",
+        "recipeUrl": "https://copperapp.app/recipe/vn-pho-bo.html",
+        "license": "CC-BY-4.0",
+        "attribution": "Copper — https://copperapp.app/study/what-the-world-cooks.html",
+        "attributionUrl": "https://copperapp.app/study/what-the-world-cooks.html"
+      }
+    }
+  ]
+}

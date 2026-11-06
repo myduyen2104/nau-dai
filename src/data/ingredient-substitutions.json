@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "onion-to-leek",
+      "originalIngredientId": "onion",
+      "substituteIngredientId": "leek",
+      "excludedRecipeIds": ["copper:vn-pho-bo"],
+      "suitability": "conditional",
+      "flavorImpact": "Vị hành dịu và ngọt hơn; món có thể khác hương vị ban đầu.",
+      "textureImpact": "Tỏi tây có kết cấu lá và thân khác hành tây.",
+      "cookingAdjustment": "Cắt nhỏ và nấu chín theo món; không tự quy đổi định lượng.",
+      "verificationStatus": "verified",
+      "sourceUrl": "https://extension.usu.edu/news_sections/home_family_and_food/six-tips-for-planning-menus-around-farmers-market-selections"
+    },
+    {
+      "id": "onion-to-scallion",
+      "originalIngredientId": "onion",
+      "substituteIngredientId": "scallion",
+      "excludedRecipeIds": ["copper:vn-pho-bo"],
+      "suitability": "conditional",
+      "flavorImpact": "Hành lá có vị nhẹ và tươi hơn hành tây.",
+      "textureImpact": "Thân hành lá mảnh hơn, không tạo độ mềm/ngọt giống hành tây khi nấu lâu.",
+      "cookingAdjustment": "Cho vào gần cuối nếu muốn giữ mùi thơm; không tự quy đổi định lượng.",
+      "verificationStatus": "verified",
+      "sourceUrl": "https://extension.usu.edu/news_sections/home_family_and_food/six-tips-for-planning-menus-around-farmers-market-selections"
+    },
+    {
+      "id": "potato-to-sweet-potato-in-chicken-soup",
+      "originalIngredientId": "potato",
+      "substituteIngredientId": "sweet-potato",
+      "allowedCookingMethods": ["nấu canh"],
+      "allowedRecipeIds": ["chicken-soup"],
+      "suitability": "conditional",
+      "flavorImpact": "Khoai lang ngọt hơn khoai tây và sẽ làm nước canh có vị ngọt rõ hơn.",
+      "textureImpact": "Khoai lang có thể mềm/bở khác khoai tây; món canh sẽ thay đổi so với công thức gốc.",
+      "cookingAdjustment": "Cắt miếng tương đương và kiểm tra độ mềm sớm. Nguồn không đưa tỷ lệ định lượng, nên không tự quy đổi.",
+      "verificationStatus": "verified",
+      "sourceUrl": "https://extension.usu.edu/news_sections/home_family_and_food/six-tips-for-planning-menus-around-farmers-market-selections",
+      "supportingSourceUrls": ["https://extension.usu.edu/nutrition/research/sweet-potatoes"]
+    },
+    {
+      "id": "bok-choy-to-kale",
+      "originalIngredientId": "bok-choy",
+      "substituteIngredientId": "kale",
+      "suitability": "conditional",
+      "flavorImpact": "Cải xoăn có vị đậm hơn cải thìa.",
+      "textureImpact": "Lá cải xoăn dai hơn; thân cải thìa giòn và mọng nước hơn.",
+      "cookingAdjustment": "Cắt nhỏ và kiểm tra độ mềm trong khi nấu; không tự quy đổi định lượng.",
+      "verificationStatus": "verified",
+      "sourceUrl": "https://extension.usu.edu/fscreate/files/2023-26-staff/CHG-Easy-Fruit-Vegetable-Swaps.pdf"
+    },
+    {
+      "id": "bok-choy-to-spinach",
+      "originalIngredientId": "bok-choy",
+      "substituteIngredientId": "spinach",
+      "suitability": "conditional",
+      "flavorImpact": "Rau cải có vị dịu hơn cải thìa.",
+      "textureImpact": "Rau cải mềm hơn, không giữ độ giòn của thân cải thìa.",
+      "cookingAdjustment": "Cho vào muộn hơn để tránh nấu quá mềm; không tự quy đổi định lượng.",
+      "verificationStatus": "verified",
+      "sourceUrl": "https://extension.usu.edu/fscreate/files/2023-26-staff/CHG-Easy-Fruit-Vegetable-Swaps.pdf"
+    },
+    {
+      "id": "broccoli-to-cauliflower",
+      "originalIngredientId": "broccoli",
+      "substituteIngredientId": "cauliflower",
+      "suitability": "conditional",
+      "flavorImpact": "Súp lơ trắng có vị dịu hơn bông cải xanh.",
+      "textureImpact": "Cấu trúc gần nhau nhưng thời gian mềm có thể khác theo kích thước miếng.",
+      "cookingAdjustment": "Cắt miếng tương tự và kiểm tra độ chín; không tự quy đổi định lượng.",
+      "verificationStatus": "verified",
+      "sourceUrl": "https://extension.usu.edu/fscreate/files/2023-26-staff/CHG-Easy-Fruit-Vegetable-Swaps.pdf"
+    },
+    {
+      "id": "broccoli-to-cabbage",
+      "originalIngredientId": "broccoli",
+      "substituteIngredientId": "cabbage",
+      "suitability": "conditional",
+      "flavorImpact": "Bắp cải có vị ngọt nhẹ hơn.",
+      "textureImpact": "Bắp cải thái sợi khác cấu trúc bông và thân của bông cải xanh.",
+      "cookingAdjustment": "Thái miếng phù hợp với món và kiểm tra độ chín; không tự quy đổi định lượng.",
+      "verificationStatus": "verified",
+      "sourceUrl": "https://extension.usu.edu/fscreate/files/2023-26-staff/CHG-Easy-Fruit-Vegetable-Swaps.pdf"
+    }
+  ]
+}

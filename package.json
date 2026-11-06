@@ -1,0 +1,10 @@
+{
+  "name": "whats-in-my-fridge",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {"node": ">=22.6.0"},
+  "scripts": {"dev":"vite --host 0.0.0.0", "build":"tsc -b && vite build", "preview":"vite preview", "test":"node --experimental-strip-types --test tests/*.test.ts", "validate:recipes":"node scripts/validate-recipes.mjs", "validate:substitutions":"node scripts/validate-substitutions.mjs", "audit:sources":"node scripts/audit-sources.mjs", "import:recipes":"node scripts/import-recipes.mjs", "import:ingredients":"node scripts/import-ingredients.mjs", "normalize:ingredients":"node scripts/normalize-ingredients.mjs", "dedupe:recipes":"node scripts/deduplicate-recipes.mjs", "validate:dataset":"node scripts/validate-dataset.mjs", "index:recipes":"node scripts/build-recipe-index.mjs", "report:dataset":"node scripts/report-dataset.mjs", "sync:youtube":"node scripts/sync-youtube.mjs"},
+  "dependencies": {"lucide-react":"^0.468.0", "react":"^18.3.1", "react-dom":"^18.3.1"},
+  "devDependencies": {"@types/react":"^18.3.12", "@types/react-dom":"^18.3.1", "@vitejs/plugin-react":"^4.3.4", "typescript":"~5.6.2", "vite":"^6.0.1"}
+}

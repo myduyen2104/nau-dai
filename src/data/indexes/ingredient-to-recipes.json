@@ -1,0 +1,267 @@
+{
+  "egg": [
+    "carrot-egg",
+    "tomato-egg",
+    "egg-boil",
+    "noodle-egg",
+    "cabbage-egg",
+    "bread-egg",
+    "fried-rice",
+    "glass-noodle-stir",
+    "mushroom-egg",
+    "potato-egg",
+    "tomato-soup",
+    "egg-steam",
+    "corn-egg"
+  ],
+  "carrot": [
+    "carrot-egg",
+    "chicken-carrot",
+    "potato-soup",
+    "fried-rice",
+    "glass-noodle-stir",
+    "glass-noodle-soup",
+    "carrot-salad",
+    "carrot-boil",
+    "chicken-soup"
+  ],
+  "oil": [
+    "carrot-egg",
+    "tomato-egg",
+    "garlic-greens",
+    "cabbage-egg",
+    "chicken-carrot",
+    "pork-cabbage",
+    "beef-tomato",
+    "shrimp-greens",
+    "bread-egg",
+    "fried-rice",
+    "garlic-noodle",
+    "glass-noodle-stir",
+    "mushroom-egg",
+    "tofu-greens",
+    "potato-egg",
+    "corn-egg",
+    "pasta-tomato"
+  ],
+  "scallion": [
+    "carrot-egg",
+    "tomato-egg",
+    "noodle-egg",
+    "tofu-tomato",
+    "cabbage-egg",
+    "beef-tomato",
+    "pumpkin-soup",
+    "potato-soup",
+    "fried-rice",
+    "glass-noodle-stir",
+    "glass-noodle-soup",
+    "mushroom-egg",
+    "fish-boil",
+    "potato-egg",
+    "tomato-soup",
+    "tofu-boil",
+    "cabbage-soup",
+    "egg-steam",
+    "corn-egg",
+    "shrimp-noodle"
+  ],
+  "salt": [
+    "carrot-egg",
+    "tomato-egg",
+    "egg-boil",
+    "noodle-egg",
+    "garlic-greens",
+    "cabbage-egg",
+    "shrimp-greens",
+    "pumpkin-soup",
+    "potato-soup",
+    "glass-noodle-soup",
+    "mushroom-egg",
+    "fish-boil",
+    "potato-egg",
+    "tomato-soup",
+    "coconut-pumpkin",
+    "cabbage-soup",
+    "carrot-boil",
+    "egg-steam",
+    "potato-mash",
+    "corn-egg",
+    "chicken-soup",
+    "shrimp-noodle"
+  ],
+  "tomato": [
+    "tomato-egg",
+    "tofu-tomato",
+    "beef-tomato",
+    "bread-egg",
+    "shrimp-tomato",
+    "tomato-soup",
+    "pasta-tomato"
+  ],
+  "sugar": [
+    "tomato-egg",
+    "tofu-tomato",
+    "cucumber-salad",
+    "carrot-salad",
+    "coconut-pumpkin"
+  ],
+  "noodle": [
+    "noodle-egg",
+    "garlic-noodle",
+    "peanut-noodle",
+    "shrimp-noodle"
+  ],
+  "spinach": [
+    "noodle-egg",
+    "garlic-greens",
+    "shrimp-greens",
+    "garlic-noodle",
+    "tofu-greens",
+    "shrimp-noodle"
+  ],
+  "tofu": [
+    "tofu-tomato",
+    "tofu-greens",
+    "tofu-boil"
+  ],
+  "soy-sauce": [
+    "tofu-tomato",
+    "chicken-carrot",
+    "fried-rice",
+    "garlic-noodle",
+    "glass-noodle-stir",
+    "tofu-greens",
+    "tofu-boil",
+    "peanut-noodle"
+  ],
+  "garlic": [
+    "garlic-greens",
+    "chicken-carrot",
+    "pork-cabbage",
+    "beef-tomato",
+    "shrimp-greens",
+    "garlic-noodle",
+    "tofu-greens",
+    "shrimp-tomato",
+    "pasta-tomato"
+  ],
+  "cabbage": [
+    "cabbage-egg",
+    "pork-cabbage",
+    "cabbage-soup"
+  ],
+  "chicken": [
+    "chicken-carrot",
+    "chicken-soup"
+  ],
+  "pork": [
+    "pork-cabbage",
+    "pumpkin-soup",
+    "potato-soup",
+    "cabbage-soup"
+  ],
+  "fish-sauce": [
+    "pork-cabbage",
+    "cucumber-salad",
+    "shrimp-tomato"
+  ],
+  "beef": [
+    "beef-tomato"
+  ],
+  "shrimp": [
+    "shrimp-greens",
+    "shrimp-tomato",
+    "shrimp-noodle"
+  ],
+  "pumpkin": [
+    "pumpkin-soup",
+    "coconut-pumpkin"
+  ],
+  "potato": [
+    "potato-soup",
+    "potato-egg",
+    "potato-mash",
+    "chicken-soup"
+  ],
+  "corn": [
+    "boiled-corn",
+    "corn-egg"
+  ],
+  "sweet-potato": [
+    "sweet-potato"
+  ],
+  "oats": [
+    "oatmeal-banana"
+  ],
+  "banana": [
+    "oatmeal-banana",
+    "yogurt-banana"
+  ],
+  "milk": [
+    "oatmeal-banana",
+    "potato-mash"
+  ],
+  "yogurt": [
+    "oatmeal-banana",
+    "yogurt-banana"
+  ],
+  "bread": [
+    "bread-egg"
+  ],
+  "cucumber": [
+    "cucumber-salad"
+  ],
+  "lime": [
+    "cucumber-salad",
+    "carrot-salad",
+    "peanut-noodle"
+  ],
+  "chili": [
+    "cucumber-salad",
+    "tofu-boil",
+    "peanut-noodle"
+  ],
+  "rice": [
+    "fried-rice"
+  ],
+  "glass-noodle": [
+    "glass-noodle-stir",
+    "glass-noodle-soup"
+  ],
+  "bean-sprout": [
+    "glass-noodle-stir",
+    "glass-noodle-soup"
+  ],
+  "quail-egg": [
+    "glass-noodle-soup"
+  ],
+  "peanut": [
+    "carrot-salad",
+    "peanut-noodle"
+  ],
+  "mushroom": [
+    "mushroom-egg"
+  ],
+  "fish": [
+    "fish-boil"
+  ],
+  "ginger": [
+    "fish-boil"
+  ],
+  "coconut-milk": [
+    "coconut-pumpkin"
+  ],
+  "butter": [
+    "potato-mash"
+  ],
+  "pasta": [
+    "pasta-tomato"
+  ],
+  "cheese": [
+    "pasta-tomato"
+  ],
+  "onion": [
+    "chicken-soup"
+  ]
+}

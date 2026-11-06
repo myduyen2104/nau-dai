@@ -1,0 +1,276 @@
+{
+  "schemaVersion": 1,
+  "source": "https://copperapp.app/data/",
+  "license": "CC-BY-4.0",
+  "attribution": "Copper — https://copperapp.app/study/what-the-world-cooks.html",
+  "attributionUrl": "https://copperapp.app/study/what-the-world-cooks.html",
+  "terms": [
+    {
+      "sourceName": "bean sprouts",
+      "normalizedName": "bean sprouts",
+      "ingredientId": "bean-sprout",
+      "usedBy": [
+        "copper:vn-banh-xeo",
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "beef bones",
+      "normalizedName": "beef bones",
+      "ingredientId": "beef-bones",
+      "usedBy": [
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "beef brisket",
+      "normalizedName": "beef brisket",
+      "ingredientId": "beef-brisket",
+      "usedBy": [
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "beef sirloin",
+      "normalizedName": "beef sirloin",
+      "ingredientId": "beef-sirloin",
+      "usedBy": [
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "birds eye chili",
+      "normalizedName": "birds eye chili",
+      "ingredientId": null,
+      "usedBy": [
+        "copper:vn-banh-xeo",
+        "copper:vn-bun-cha"
+      ]
+    },
+    {
+      "sourceName": "black cardamom",
+      "normalizedName": "black cardamom",
+      "ingredientId": null,
+      "usedBy": [
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "carrot",
+      "normalizedName": "carrot",
+      "ingredientId": "carrot",
+      "usedBy": [
+        "copper:vn-bun-cha"
+      ]
+    },
+    {
+      "sourceName": "cinnamon stick",
+      "normalizedName": "cinnamon stick",
+      "ingredientId": null,
+      "usedBy": [
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "cloves",
+      "normalizedName": "cloves",
+      "ingredientId": null,
+      "usedBy": [
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "coconut milk",
+      "normalizedName": "coconut milk",
+      "ingredientId": "coconut-milk",
+      "usedBy": [
+        "copper:vn-banh-xeo"
+      ]
+    },
+    {
+      "sourceName": "coriander seeds",
+      "normalizedName": "coriander seeds",
+      "ingredientId": null,
+      "usedBy": [
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "fish sauce",
+      "normalizedName": "fish sauce",
+      "ingredientId": "fish-sauce",
+      "usedBy": [
+        "copper:vn-banh-xeo",
+        "copper:vn-bun-cha",
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "flat rice noodles",
+      "normalizedName": "flat rice noodles",
+      "ingredientId": "pho-noodle",
+      "usedBy": [
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "garlic",
+      "normalizedName": "garlic",
+      "ingredientId": "garlic",
+      "usedBy": [
+        "copper:vn-banh-xeo",
+        "copper:vn-bun-cha"
+      ]
+    },
+    {
+      "sourceName": "ginger",
+      "normalizedName": "ginger",
+      "ingredientId": "ginger",
+      "usedBy": [
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "lettuce",
+      "normalizedName": "lettuce",
+      "ingredientId": "lettuce",
+      "usedBy": [
+        "copper:vn-banh-xeo",
+        "copper:vn-bun-cha"
+      ]
+    },
+    {
+      "sourceName": "lime",
+      "normalizedName": "lime",
+      "ingredientId": "lime",
+      "usedBy": [
+        "copper:vn-banh-xeo",
+        "copper:vn-bun-cha",
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "mixed herbs (mint, coriander, perilla)",
+      "normalizedName": "mixed herbs (mint, coriander, perilla)",
+      "ingredientId": null,
+      "usedBy": [
+        "copper:vn-bun-cha"
+      ]
+    },
+    {
+      "sourceName": "mixed herbs (mint, perilla)",
+      "normalizedName": "mixed herbs (mint, perilla)",
+      "ingredientId": null,
+      "usedBy": [
+        "copper:vn-banh-xeo"
+      ]
+    },
+    {
+      "sourceName": "onion",
+      "normalizedName": "onion",
+      "ingredientId": "onion",
+      "usedBy": [
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "pork belly",
+      "normalizedName": "pork belly",
+      "ingredientId": "pork-belly",
+      "usedBy": [
+        "copper:vn-bun-cha"
+      ]
+    },
+    {
+      "sourceName": "pork belly, sliced",
+      "normalizedName": "pork belly, sliced",
+      "ingredientId": "pork-belly",
+      "usedBy": [
+        "copper:vn-banh-xeo"
+      ]
+    },
+    {
+      "sourceName": "pork mince",
+      "normalizedName": "pork mince",
+      "ingredientId": "ground-pork",
+      "usedBy": [
+        "copper:vn-bun-cha"
+      ]
+    },
+    {
+      "sourceName": "prawn",
+      "normalizedName": "prawn",
+      "ingredientId": "shrimp",
+      "usedBy": [
+        "copper:vn-banh-xeo"
+      ]
+    },
+    {
+      "sourceName": "rice flour",
+      "normalizedName": "rice flour",
+      "ingredientId": "rice-flour",
+      "usedBy": [
+        "copper:vn-banh-xeo"
+      ]
+    },
+    {
+      "sourceName": "rice vermicelli",
+      "normalizedName": "rice vermicelli",
+      "ingredientId": "vermicelli",
+      "usedBy": [
+        "copper:vn-bun-cha"
+      ]
+    },
+    {
+      "sourceName": "rice vinegar",
+      "normalizedName": "rice vinegar",
+      "ingredientId": "rice-vinegar",
+      "usedBy": [
+        "copper:vn-bun-cha"
+      ]
+    },
+    {
+      "sourceName": "spring onion",
+      "normalizedName": "spring onion",
+      "ingredientId": "scallion",
+      "usedBy": [
+        "copper:vn-banh-xeo",
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "star anise",
+      "normalizedName": "star anise",
+      "ingredientId": null,
+      "usedBy": [
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "sugar",
+      "normalizedName": "sugar",
+      "ingredientId": "sugar",
+      "usedBy": [
+        "copper:vn-banh-xeo",
+        "copper:vn-bun-cha",
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "thai basil",
+      "normalizedName": "thai basil",
+      "ingredientId": null,
+      "usedBy": [
+        "copper:vn-pho-bo"
+      ]
+    },
+    {
+      "sourceName": "turmeric",
+      "normalizedName": "turmeric",
+      "ingredientId": "ginger-root",
+      "usedBy": [
+        "copper:vn-banh-xeo"
+      ]
+    }
+  ]
+}

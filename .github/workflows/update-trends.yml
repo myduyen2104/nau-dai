@@ -1,0 +1,42 @@
+name: Update YouTube food videos
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-youtube-trends
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validate recipe data
+        run: npm run validate:recipes
+      - name: Sync real YouTube metadata
+        run: npm run sync:youtube
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+      - name: Commit changed trend data
+        run: |
+          if git diff --quiet -- src/data/trending.json; then
+            echo "Trend data unchanged; no commit needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/trending.json
+          git commit -m "chore: update YouTube food videos"
+          git push

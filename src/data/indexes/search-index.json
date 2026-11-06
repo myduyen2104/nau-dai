@@ -1,0 +1,576 @@
+[
+  {
+    "id": "carrot-egg",
+    "name": "Trứng xào cà rốt",
+    "status": "full_recipe",
+    "terms": [
+      "trung xao ca rot",
+      "egg",
+      "carrot",
+      "oil",
+      "scallion",
+      "salt"
+    ]
+  },
+  {
+    "id": "tomato-egg",
+    "name": "Trứng sốt cà chua",
+    "status": "full_recipe",
+    "terms": [
+      "trung sot ca chua",
+      "egg",
+      "tomato",
+      "oil",
+      "scallion",
+      "sugar",
+      "salt"
+    ]
+  },
+  {
+    "id": "egg-boil",
+    "name": "Trứng luộc",
+    "status": "full_recipe",
+    "terms": [
+      "trung luoc",
+      "egg",
+      "salt"
+    ]
+  },
+  {
+    "id": "noodle-egg",
+    "name": "Mì trứng rau cải",
+    "status": "full_recipe",
+    "terms": [
+      "mi trung rau cai",
+      "noodle",
+      "egg",
+      "spinach",
+      "scallion",
+      "salt"
+    ]
+  },
+  {
+    "id": "tofu-tomato",
+    "name": "Đậu hũ sốt cà",
+    "status": "full_recipe",
+    "terms": [
+      "dau hu sot ca",
+      "tofu",
+      "tomato",
+      "scallion",
+      "soy sauce",
+      "sugar"
+    ]
+  },
+  {
+    "id": "garlic-greens",
+    "name": "Rau cải xào tỏi",
+    "status": "full_recipe",
+    "terms": [
+      "rau cai xao toi",
+      "spinach",
+      "garlic",
+      "oil",
+      "salt"
+    ]
+  },
+  {
+    "id": "cabbage-egg",
+    "name": "Bắp cải xào trứng",
+    "status": "full_recipe",
+    "terms": [
+      "bap cai xao trung",
+      "cabbage",
+      "egg",
+      "oil",
+      "scallion",
+      "salt"
+    ]
+  },
+  {
+    "id": "chicken-carrot",
+    "name": "Gà xào cà rốt",
+    "status": "full_recipe",
+    "terms": [
+      "ga xao ca rot",
+      "chicken",
+      "carrot",
+      "oil",
+      "garlic",
+      "soy sauce"
+    ]
+  },
+  {
+    "id": "pork-cabbage",
+    "name": "Heo xào bắp cải",
+    "status": "full_recipe",
+    "terms": [
+      "heo xao bap cai",
+      "pork",
+      "cabbage",
+      "oil",
+      "garlic",
+      "fish sauce"
+    ]
+  },
+  {
+    "id": "beef-tomato",
+    "name": "Bò xào cà chua",
+    "status": "full_recipe",
+    "terms": [
+      "bo xao ca chua",
+      "beef",
+      "tomato",
+      "oil",
+      "garlic",
+      "scallion"
+    ]
+  },
+  {
+    "id": "shrimp-greens",
+    "name": "Tôm xào rau cải",
+    "status": "full_recipe",
+    "terms": [
+      "tom xao rau cai",
+      "shrimp",
+      "spinach",
+      "oil",
+      "garlic",
+      "salt"
+    ]
+  },
+  {
+    "id": "pumpkin-soup",
+    "name": "Canh bí đỏ",
+    "status": "full_recipe",
+    "terms": [
+      "canh bi do",
+      "pumpkin",
+      "salt",
+      "scallion",
+      "pork"
+    ]
+  },
+  {
+    "id": "potato-soup",
+    "name": "Canh khoai tây cà rốt",
+    "status": "full_recipe",
+    "terms": [
+      "canh khoai tay ca rot",
+      "potato",
+      "carrot",
+      "salt",
+      "scallion",
+      "pork"
+    ]
+  },
+  {
+    "id": "boiled-corn",
+    "name": "Bắp luộc",
+    "status": "full_recipe",
+    "terms": [
+      "bap luoc",
+      "corn"
+    ]
+  },
+  {
+    "id": "sweet-potato",
+    "name": "Khoai lang luộc",
+    "status": "full_recipe",
+    "terms": [
+      "khoai lang luoc",
+      "sweet potato"
+    ]
+  },
+  {
+    "id": "oatmeal-banana",
+    "name": "Yến mạch chuối",
+    "status": "full_recipe",
+    "terms": [
+      "yen mach chuoi",
+      "oats",
+      "banana",
+      "milk",
+      "yogurt"
+    ]
+  },
+  {
+    "id": "yogurt-banana",
+    "name": "Sữa chua chuối",
+    "status": "full_recipe",
+    "terms": [
+      "sua chua chuoi",
+      "yogurt",
+      "banana"
+    ]
+  },
+  {
+    "id": "bread-egg",
+    "name": "Bánh mì trứng",
+    "status": "full_recipe",
+    "terms": [
+      "banh mi trung",
+      "bread",
+      "egg",
+      "oil",
+      "tomato"
+    ]
+  },
+  {
+    "id": "cucumber-salad",
+    "name": "Dưa leo trộn chua ngọt",
+    "status": "full_recipe",
+    "terms": [
+      "dua leo tron chua ngot",
+      "cucumber",
+      "lime",
+      "sugar",
+      "chili",
+      "fish sauce"
+    ]
+  },
+  {
+    "id": "fried-rice",
+    "name": "Cơm rang trứng",
+    "status": "full_recipe",
+    "terms": [
+      "com rang trung",
+      "rice",
+      "egg",
+      "oil",
+      "scallion",
+      "carrot",
+      "soy sauce"
+    ]
+  },
+  {
+    "id": "garlic-noodle",
+    "name": "Mì xào rau cải",
+    "status": "full_recipe",
+    "terms": [
+      "mi xao rau cai",
+      "noodle",
+      "spinach",
+      "oil",
+      "garlic",
+      "soy sauce"
+    ]
+  },
+  {
+    "id": "glass-noodle-stir",
+    "name": "Miến xào rau củ",
+    "status": "full_recipe",
+    "terms": [
+      "mien xao rau cu",
+      "glass noodle",
+      "carrot",
+      "bean sprout",
+      "oil",
+      "egg",
+      "scallion",
+      "soy sauce"
+    ]
+  },
+  {
+    "id": "glass-noodle-soup",
+    "name": "Miến nước rau củ",
+    "status": "full_recipe",
+    "terms": [
+      "mien nuoc rau cu",
+      "glass noodle",
+      "carrot",
+      "bean sprout",
+      "quail egg",
+      "scallion",
+      "salt"
+    ]
+  },
+  {
+    "id": "carrot-salad",
+    "name": "Cà rốt trộn chanh",
+    "status": "full_recipe",
+    "terms": [
+      "ca rot tron chanh",
+      "carrot",
+      "lime",
+      "sugar",
+      "peanut"
+    ]
+  },
+  {
+    "id": "mushroom-egg",
+    "name": "Nấm xào trứng",
+    "status": "full_recipe",
+    "terms": [
+      "nam xao trung",
+      "mushroom",
+      "egg",
+      "oil",
+      "scallion",
+      "salt"
+    ]
+  },
+  {
+    "id": "tofu-greens",
+    "name": "Đậu hũ xào rau cải",
+    "status": "full_recipe",
+    "terms": [
+      "dau hu xao rau cai",
+      "tofu",
+      "spinach",
+      "oil",
+      "garlic",
+      "soy sauce"
+    ]
+  },
+  {
+    "id": "shrimp-tomato",
+    "name": "Tôm rim cà chua",
+    "status": "full_recipe",
+    "terms": [
+      "tom rim ca chua",
+      "shrimp",
+      "tomato",
+      "garlic",
+      "fish sauce"
+    ]
+  },
+  {
+    "id": "fish-boil",
+    "name": "Cá hấp gừng hành",
+    "status": "full_recipe",
+    "terms": [
+      "ca hap gung hanh",
+      "fish",
+      "scallion",
+      "ginger",
+      "salt"
+    ]
+  },
+  {
+    "id": "potato-egg",
+    "name": "Khoai tây xào trứng",
+    "status": "full_recipe",
+    "terms": [
+      "khoai tay xao trung",
+      "potato",
+      "egg",
+      "oil",
+      "scallion",
+      "salt"
+    ]
+  },
+  {
+    "id": "tomato-soup",
+    "name": "Canh cà chua trứng",
+    "status": "full_recipe",
+    "terms": [
+      "canh ca chua trung",
+      "tomato",
+      "egg",
+      "scallion",
+      "salt"
+    ]
+  },
+  {
+    "id": "coconut-pumpkin",
+    "name": "Bí đỏ nấu nước cốt dừa",
+    "status": "full_recipe",
+    "terms": [
+      "bi do nau nuoc cot dua",
+      "pumpkin",
+      "coconut milk",
+      "sugar",
+      "salt"
+    ]
+  },
+  {
+    "id": "tofu-boil",
+    "name": "Đậu hũ luộc chấm nước tương",
+    "status": "full_recipe",
+    "terms": [
+      "dau hu luoc cham nuoc tuong",
+      "tofu",
+      "soy sauce",
+      "chili",
+      "scallion"
+    ]
+  },
+  {
+    "id": "peanut-noodle",
+    "name": "Mì trộn đậu phộng",
+    "status": "full_recipe",
+    "terms": [
+      "mi tron dau phong",
+      "noodle",
+      "peanut",
+      "soy sauce",
+      "lime",
+      "chili"
+    ]
+  },
+  {
+    "id": "cabbage-soup",
+    "name": "Canh bắp cải",
+    "status": "full_recipe",
+    "terms": [
+      "canh bap cai",
+      "cabbage",
+      "salt",
+      "pork",
+      "scallion"
+    ]
+  },
+  {
+    "id": "carrot-boil",
+    "name": "Cà rốt luộc",
+    "status": "full_recipe",
+    "terms": [
+      "ca rot luoc",
+      "carrot",
+      "salt"
+    ]
+  },
+  {
+    "id": "egg-steam",
+    "name": "Trứng hấp mềm",
+    "status": "full_recipe",
+    "terms": [
+      "trung hap mem",
+      "egg",
+      "salt",
+      "scallion"
+    ]
+  },
+  {
+    "id": "potato-mash",
+    "name": "Khoai tây nghiền bơ",
+    "status": "full_recipe",
+    "terms": [
+      "khoai tay nghien bo",
+      "potato",
+      "butter",
+      "milk",
+      "salt"
+    ]
+  },
+  {
+    "id": "corn-egg",
+    "name": "Bắp xào trứng",
+    "status": "full_recipe",
+    "terms": [
+      "bap xao trung",
+      "corn",
+      "egg",
+      "oil",
+      "scallion",
+      "salt"
+    ]
+  },
+  {
+    "id": "pasta-tomato",
+    "name": "Mì Ý sốt cà chua",
+    "status": "full_recipe",
+    "terms": [
+      "mi y sot ca chua",
+      "pasta",
+      "tomato",
+      "garlic",
+      "oil",
+      "cheese"
+    ]
+  },
+  {
+    "id": "chicken-soup",
+    "name": "Canh gà rau củ",
+    "status": "full_recipe",
+    "terms": [
+      "canh ga rau cu",
+      "chicken",
+      "carrot",
+      "potato",
+      "onion",
+      "salt"
+    ]
+  },
+  {
+    "id": "shrimp-noodle",
+    "name": "Mì nước tôm",
+    "status": "full_recipe",
+    "terms": [
+      "mi nuoc tom",
+      "noodle",
+      "shrimp",
+      "spinach",
+      "scallion",
+      "salt"
+    ]
+  },
+  {
+    "id": "copper:vn-banh-xeo",
+    "name": "Bánh xèo",
+    "status": "ingredients_only",
+    "terms": [
+      "banh xeo",
+      "rice flour",
+      "coconut milk",
+      "turmeric",
+      "pork belly sliced",
+      "prawn",
+      "bean sprouts",
+      "spring onion",
+      "lettuce",
+      "mixed herbs mint perilla",
+      "fish sauce",
+      "sugar",
+      "lime",
+      "garlic",
+      "birds eye chili"
+    ]
+  },
+  {
+    "id": "copper:vn-bun-cha",
+    "name": "Bún chả",
+    "status": "ingredients_only",
+    "terms": [
+      "bun cha",
+      "pork mince",
+      "pork belly",
+      "rice vermicelli",
+      "fish sauce",
+      "sugar",
+      "lime",
+      "garlic",
+      "rice vinegar",
+      "birds eye chili",
+      "carrot",
+      "lettuce",
+      "mixed herbs mint coriander perilla"
+    ]
+  },
+  {
+    "id": "copper:vn-pho-bo",
+    "name": "Phở bò",
+    "status": "ingredients_only",
+    "terms": [
+      "pho bo",
+      "beef bones",
+      "beef brisket",
+      "beef sirloin",
+      "flat rice noodles",
+      "onion",
+      "ginger",
+      "star anise",
+      "cinnamon stick",
+      "black cardamom",
+      "coriander seeds",
+      "cloves",
+      "sugar",
+      "fish sauce",
+      "bean sprouts",
+      "thai basil",
+      "spring onion",
+      "lime"
+    ]
+  }
+]
