@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { loadRecipeData } from "./load-recipe-data.mjs";
+import { cookingInstructionVideos } from "./lib/youtube-trends.mjs";
 
 const output = new URL("../src/data/trending.json", import.meta.url);
 const apiKey = process.env.YOUTUBE_API_KEY;
@@ -9,9 +10,10 @@ if (!apiKey) {
 }
 
 const queries = [
-  "món ăn hot Việt Nam", "món ăn viral Việt Nam", "công thức nấu ăn Việt Nam",
-  "món ăn TikTok", "ăn vặt hot trend Việt Nam", "món ngon dễ làm",
-  "món ngon mỗi ngày", "cách làm món ăn đang hot",
+  '"cách nấu" món ngon Việt Nam', '"cách làm" món ăn ngon',
+  '"hướng dẫn nấu ăn" món Việt', '"công thức nấu ăn" món Việt',
+  '"cách chế biến" món ngon', '"nấu món" ngon tại nhà',
+  '"recipe" Vietnamese cooking', '"vào bếp" cách làm món ngon',
 ];
 const recipes = (await loadRecipeData()).recipes;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -48,9 +50,11 @@ try {
     const page = await youtube("videos", { part: "snippet,statistics", id: videoIds.slice(i, i + 50).join(",") });
     details.push(...(page.items ?? []));
   }
+  if (details.length === 0) throw new Error("YouTube trả về 0 video; giữ nguyên danh sách hiện tại để tránh xóa nhầm dữ liệu.");
   const fetchedAt = new Date().toISOString();
-  const videos = details.map((video) => {
+  const videos = cookingInstructionVideos(details.map((video) => {
     const title = video.snippet?.title ?? "";
+    const description = video.snippet?.description ?? "";
     const normalizedTitle = title.toLocaleLowerCase("vi").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
     const match = recipes.find((recipe) => {
       const name = recipe.name.toLocaleLowerCase("vi").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
@@ -61,6 +65,7 @@ try {
       id: video.id,
       platform: "youtube",
       title,
+      description,
       videoUrl: `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}`,
       thumbnailUrl: video.snippet?.thumbnails?.high?.url ?? video.snippet?.thumbnails?.medium?.url,
       creatorName: video.snippet?.channelTitle,
@@ -71,7 +76,7 @@ try {
       ...(match ? { recipeId: match.id } : {}),
       fetchedAt,
     };
-  });
+  }));
   const data = `${JSON.stringify({ updatedAt: fetchedAt, source: "youtube", videos }, null, 2)}\n`;
   let previous = "";
   try { previous = await readFile(output, "utf8"); } catch {}

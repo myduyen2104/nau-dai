@@ -17,10 +17,18 @@ test("recipe database có ID hợp lệ, bước rõ ràng, tham chiếu nguyên
   }
 });
 
-test("trend dữ liệu khởi tạo rỗng, không tự tạo video hoặc thống kê mẫu", async () => {
+test("trend data có schema hợp lệ và chỉ chứa video từ YouTube thật", async () => {
   const data = JSON.parse(await readFile(new URL("../src/data/trending.json", import.meta.url), "utf8"));
-  assert.equal(data.updatedAt, null);
-  assert.deepEqual(data.videos, []);
+  assert.ok(data.updatedAt === null || Number.isFinite(Date.parse(data.updatedAt)));
+  assert.ok(Array.isArray(data.videos));
+  assert.equal(data.source, "youtube");
+  for (const video of data.videos) {
+    assert.ok(video.id && video.title && video.fetchedAt);
+    assert.equal(video.platform, "youtube");
+    assert.equal(video.videoUrl, `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}`);
+    if (video.thumbnailUrl) assert.equal(new URL(video.thumbnailUrl).protocol, "https:");
+    if (video.publishedAt) assert.ok(Number.isFinite(Date.parse(video.publishedAt)));
+  }
 });
 
 test("toàn bộ database hiện chưa có định lượng hoặc số khẩu phần gốc", async () => {
