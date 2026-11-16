@@ -1,5 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="120" fill="#e5eee3"/>
-  <path d="M365 111c-117 3-204 40-228 132-18 70 28 127 93 122 93-7 133-124 135-254Z" fill="#315d43"/>
-  <path d="M137 397c46-90 111-150 210-220" fill="none" stroke="#f7f6f2" stroke-linecap="round" stroke-width="22"/>
+  <style>
+    .tile { fill: #006738; }
+    @media (prefers-color-scheme: dark) { .tile { fill: #12382b; } }
+  </style>
+  <rect class="tile" width="512" height="512" rx="112"/>
+  <g aria-hidden="true">
+    <path d="M205 91 312 226M250 82 357 217" fill="none" stroke="#fff8e9" stroke-linecap="round" stroke-width="19"/>
+    <path d="M116 247c9 86 57 143 140 148 83-5 131-62 140-148H116Z" fill="#fff8e9"/>
+    <ellipse cx="256" cy="247" rx="141" ry="31" fill="#f27a25" stroke="#fff8e9" stroke-width="10"/>
+    <path d="M222 247c13-11 27-11 40 0s27 11 40 0" fill="none" stroke="#fff8e9" stroke-linecap="round" stroke-width="9"/>
+  </g>
 </svg>
