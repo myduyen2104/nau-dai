@@ -1,5 +1,5 @@
-const CACHE = "fresh-shell-v8";
-const SHELL = ["/", "/manifest.webmanifest", "/icon.svg", "/data/recipe-image-manifest.json", "/data/canonical-recipe-id-aliases.json"];
+const CACHE = "fresh-shell-v11";
+const SHELL = ["/", "/manifest.webmanifest", "/favicon.svg", "/icon.svg", "/favicon.ico", "/favicon-32x32.png", "/apple-touch-icon.png", "/pwa-192x192.png", "/pwa-512x512.png", "/pwa-maskable-512x512.png", "/data/recipe-image-manifest.json", "/data/canonical-recipe-id-aliases.json"];
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
   self.skipWaiting();
@@ -17,6 +17,10 @@ self.addEventListener("notificationclick", (event) => {
 });
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET" || new URL(event.request.url).origin !== self.location.origin) return;
+  if (new URL(event.request.url).pathname === "/data/youtube/catalog.json") {
+    event.respondWith(fetch(event.request, { cache: "no-store" }).catch(() => Response.error()));
+    return;
+  }
   if (new URL(event.request.url).pathname === "/data/recipe-image-manifest.json") {
     event.respondWith(caches.open(CACHE).then(async (cache) => {
       try {

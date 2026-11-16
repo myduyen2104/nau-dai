@@ -1,5 +1,9 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/((?!.*\\.).*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/((?!.*\\.).*)", "destination": "/index.html" }],
+  "headers": [{
+    "source": "/data/youtube/catalog.json",
+    "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" }]
+  }]
 }

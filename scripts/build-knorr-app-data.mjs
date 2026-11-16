@@ -4,6 +4,7 @@ const root = process.cwd();
 const archivePath = `${root}/data-archive/knorr_source_2026-11-15/recipes.jsonl`;
 const ingredientCatalogPath = `${root}/src/data/source-ingredients.json`;
 const outputPath = `${root}/public/data/knorr/recipes.json`;
+const homeRecommendationsPath = `${root}/public/data/knorr/home-recommendations.json`;
 
 const sourceRows = (await readFile(archivePath, "utf8")).split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
 const catalog = JSON.parse(await readFile(ingredientCatalogPath, "utf8"));
@@ -95,4 +96,10 @@ const recipes = sourceRows.filter((row) => row.id && row.name).map((row) => {
 if (!recipes.length || new Set(recipes.map((recipe) => recipe.id)).size !== recipes.length) throw new Error("Knorr recipe records are empty or have duplicate IDs");
 await mkdir(`${root}/public/data/knorr`, { recursive: true });
 await writeFile(outputPath, `${JSON.stringify(recipes)}\n`);
-console.log(`Wrote ${recipes.length} Knorr recipes with ${recipes.filter((recipe) => recipe.dataStatus === "full_recipe").length} instructions to public/data/knorr/recipes.json.`);
+const homeRecommendations = recipes
+  .filter((recipe) => recipe.dataStatus === "full_recipe" && recipe.steps.length > 0)
+  .sort((a, b) => (Date.parse(b.publishedAt ?? "") || 0) - (Date.parse(a.publishedAt ?? "") || 0) || a.name.localeCompare(b.name, "vi"))
+  .slice(0, 24);
+if (!homeRecommendations.length) throw new Error("No complete Knorr recipes available for the home suggestions.");
+await writeFile(homeRecommendationsPath, `${JSON.stringify(homeRecommendations)}\n`);
+console.log(`Wrote ${recipes.length} Knorr recipes plus ${homeRecommendations.length} lightweight home recommendations.`);

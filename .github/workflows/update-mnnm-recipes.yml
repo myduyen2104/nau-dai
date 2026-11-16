@@ -39,11 +39,13 @@ jobs:
         run: npm run build:cooking-tips
       - name: Refresh complete source ingredient catalog
         run: node scripts/build-source-ingredient-catalog.mjs
+      - name: Rebuild Knorr home recommendations
+        run: npm run build:knorr-app-data
       - name: Validate app data
         run: npm run build
       - name: Commit updated recipe data
         run: |
-          git add data-archive/monngonmoingay_source_2026-11-14 data-archive/knorr_tips_source public/data/mnnm public/data/knorr/recipes.json public/data/cooking-tips.json src/data/source-ingredients.json
+          git add data-archive/monngonmoingay_source_2026-11-14 data-archive/knorr_tips_source public/data/mnnm public/data/knorr/recipes.json public/data/knorr/home-recommendations.json public/data/cooking-tips.json src/data/source-ingredients.json
           if git diff --cached --quiet; then
             echo "Recipe data unchanged; no commit needed."
             exit 0

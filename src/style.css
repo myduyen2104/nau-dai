@@ -35,6 +35,8 @@ a { color: var(--green); }
 .app { min-height: 100vh; max-width: 1440px; margin: 0 auto; padding: 0 0 90px; }
 .topbar { width: min(100% - 64px, 1180px); height: 68px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .brand { display: inline-flex; align-items: center; gap: 9px; color: var(--green); font: 700 23px Alegreya, Georgia, serif; letter-spacing: -.035em; }
+.brand-logo-image { width: 34px; height: 34px; flex: 0 0 34px; display: block; object-fit: cover; }
+.brand-wordmark { display: inline-flex; align-items: baseline; gap: .22em; color: #006738; font: 800 24px/1 "Plus Jakarta Sans",sans-serif; letter-spacing: -.035em; white-space: nowrap; }
 .brandicon { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 8px; background: transparent; color: var(--green); }
 .branddot { color: var(--orange); }
 .avatar { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--green); transition: background .18s; }
@@ -1352,18 +1354,6 @@ h1, h2, h3 { color: #1a1c18; }
 .home-search input { min-width: 0; flex: 1; height: 100%; border: 0; outline: 0; background: transparent; color: #1a1c18; font-size: 13px; }
 .home-search input::placeholder { color: #717a72; opacity: 1; }
 .home-search > button { width: 38px; height: 38px; display: grid; place-items: center; border: 0; border-radius: 50%; background: #d7f8df; color: #006738; }
-.home-new-recipes { margin: 10px 0 22px; }
-.home-new-recipes .section-title-row { margin-bottom: 10px; }
-.home-new-recipes .section-title-row h2 { margin: 4px 0 0; font-size: 21px; letter-spacing: -.035em; }
-.home-new-recipes-list { display: grid; gap: 8px; }
-.home-new-recipe { min-width: 0; min-height: 76px; display: flex; align-items: center; gap: 11px; padding: 8px 11px 8px 8px; border: 1px solid #e9ede4; border-radius: 16px; background: #fff; color: var(--ink); text-align: left; }
-.home-new-recipe > img, .home-new-recipe-placeholder { width: 60px; height: 60px; flex: 0 0 60px; display: grid; place-items: center; overflow: hidden; border-radius: 12px; background: #e8eee3; object-fit: cover; font-size: 25px; }
-.home-new-recipe-copy { min-width: 0; flex: 1; display: grid; gap: 3px; }
-.home-new-recipe-copy small { color: #087844; font-size: 10px; font-weight: 750; }
-.home-new-recipe-copy b { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.home-new-recipe-copy > span { color: #68746a; font-size: 10px; }
-.home-new-recipe > svg { flex: 0 0 auto; color: #66806b; }
-.home-new-recipe:hover { border-color: #b7d5b8; background: #fbfdf9; }
 .home-feature { position: relative; min-height: 400px; display: flex; align-items: flex-end; margin: 14px 0 25px; overflow: hidden; border-radius: 20px; background: #e4e8df; color: #fff; isolation: isolate; }
 .home-feature::after { position: absolute; z-index: -1; inset: 25% 0 0; content: ""; background: linear-gradient(180deg,transparent 0%,rgba(18,23,19,.28) 30%,rgba(18,23,19,.88) 100%); }
 .home-feature-image { position: absolute; z-index: -2; inset: 0; width: 100%; height: 100%; display: grid; place-items: center; padding: 0; border: 0; background: #e3e8dd; color: #006738; font-size: 88px; }
@@ -1655,6 +1645,9 @@ h1, h2, h3 { color: #1a1c18; }
 .cook-header-title small { overflow: hidden; color: #576258; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .cook-header-title strong { font-size: 15px; }
 .cook-handsfree { display: inline-flex; align-items: center; gap: 5px; min-height: 38px; padding: 0 10px; border-radius: 999px; background: #d7f8df; color: #00522b; font-size: 10px; font-weight: 750; }
+.cook-awake-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 38px; padding: 0 9px; border: 0; border-radius: 999px; background: #f1f2ec; color: #3f4940; font-size: 10px; font-weight: 750; white-space: nowrap; }
+.cook-awake-toggle.is-awake { background: #ffedc2; color: #745300; }
+.cook-awake-toggle:disabled { opacity: .58; }
 .cook-mode-main { width: min(100% - 36px, 620px); padding: 8px 0 32px; }
 .cook-mode-screen { display: grid; gap: 13px; padding-bottom: 87px; }
 .cook-progress-track { height: 7px; overflow: hidden; border-radius: 999px; background: #e1e7df; }
@@ -2181,6 +2174,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .cook-header-title strong { font-size: 17px; line-height: 22px; }
 .cook-handsfree { min-height: 40px; flex: 0 0 auto; border: 0; background: #98f7b5; font-size: 12px; }
 .cook-handsfree.is-listening { background: #1e824c; color: white; }
+.cook-awake-toggle { min-height: 40px; flex: 0 0 auto; font-size: 11px; }
 .app-page-cook > .cook-mode-main { width: min(100%, 780px); padding: 0 0 104px; }
 .cook-mode-screen { gap: 0; padding: 0 0 calc(24px + env(safe-area-inset-bottom)); }
 .cook-progress-panel { display: grid; gap: 8px; padding: 14px 20px 13px; background: #f4f4ed; }
@@ -2408,19 +2402,28 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .app-page-trending .trend-feed { position: absolute; inset: 0; width: 100%; height: 100dvh; max-height: none; display: block; margin: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; scroll-snap-type: y mandatory; scrollbar-width: none; background: #000; }
 .app-page-trending .trend-feed::-webkit-scrollbar { display: none; }
 .app-page-trending .trend-feed-card { position: relative; width: min(100%, 480px); height: 100dvh; min-height: 100dvh; margin: 0 auto; padding: 0; overflow: hidden; border: 0; border-radius: 0; scroll-snap-align: start; scroll-snap-stop: always; background: #000; }
-.app-page-trending .trend-player { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; overflow: hidden; border-radius: 0; background: #000; }
+.app-page-trending .trend-player { position: absolute; inset: 58px 0 calc(210px + env(safe-area-inset-bottom)); width: 100%; height: auto; min-height: 0; overflow: hidden; border-radius: 0; background: #000; }
 .app-page-trending .trend-player iframe, .app-page-trending .trend-player-poster { width: 100%; height: 100%; }
+.app-page-trending .trend-card::after { position: absolute; z-index: 1; right: 0; bottom: calc(68px + env(safe-area-inset-bottom)); left: 0; height: 142px; content: ""; background: #090d0b; }
 .app-page-trending .trend-player-poster img { object-fit: cover; }
 .app-page-trending .trend-player-poster::after { background: linear-gradient(180deg,rgba(0,0,0,.38) 0%,transparent 25%,transparent 48%,rgba(0,0,0,.78) 100%); }
 .app-page-trending .trend-player-poster > small { display: none; }
-.app-page-trending .trend-card-body { position: absolute; z-index: 2; right: 78px; bottom: calc(86px + env(safe-area-inset-bottom)); left: 16px; padding: 0; color: #fff; text-shadow: 0 1px 5px rgba(0,0,0,.6); }
-.app-page-trending .trend-card-meta { margin: 0 0 8px; color: rgba(255,255,255,.9); }
+.app-page-trending .trend-card-body { position: absolute; z-index: 2; right: 82px; bottom: calc(78px + env(safe-area-inset-bottom)); left: 16px; padding: 0; color: #fff; text-shadow: 0 2px 5px rgba(0,0,0,.9), 0 0 12px rgba(0,0,0,.8); }
+.app-page-trending .trend-card-meta { margin: 0 0 8px; color: #fff; text-shadow: 0 1px 4px #000, 0 0 9px rgba(0,0,0,.95); }
 .app-page-trending .trend-card-meta small, .app-page-trending .trend-card-meta span { font-size: 11px; }
 .app-page-trending .trend-card-body h3 { margin: 0 0 8px; color: #fff; font: 750 19px/1.28 system-ui,sans-serif; }
-.app-page-trending .trend-card-body > p { margin: 0; color: rgba(255,255,255,.83); font-size: 12px; }
+.app-page-trending .trend-card-body > p { margin: 0; color: #fff; font-size: 12px; text-shadow: 0 1px 4px #000, 0 0 9px rgba(0,0,0,.95); }
+.app-page-trending .trend-card-body > small { color: #fff; text-shadow: 0 1px 4px #000, 0 0 9px rgba(0,0,0,.95); }
 .app-page-trending .trend-recipe-link { margin-top: 10px; padding: 8px 11px; border: 1px solid rgba(255,255,255,.45); border-radius: 999px; color: #fff; background: rgba(0,0,0,.3); font-size: 11px; text-align: left; }
-.app-page-trending .trend-card-actions { position: absolute; z-index: 3; right: max(14px,calc((100vw - 480px)/2 + 14px)); bottom: calc(96px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; gap: 17px; }
+.app-page-trending .trend-card-actions { position: absolute; z-index: 3; right: 14px; bottom: calc(76px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .app-page-trending .trend-save-button { width: 48px; min-height: 48px; flex-direction: column; justify-content: center; gap: 3px; padding: 5px 2px; border: 0; border-radius: 50%; color: #fff; background: rgba(0,0,0,.48); font-size: 9px; text-shadow: 0 1px 4px #000; }
 .app-page-trending .trend-save-button.is-saved { color: #fff; background: #087844; }
 .app-page-trending .trend-card-actions .trend-original { width: 42px; height: 42px; margin: 0; color: #fff; background: rgba(0,0,0,.46); }
-.app-page-trending .bottom-nav { display: none; }
+.app-page-trending .bottom-nav { z-index: 8; color: #fff; border-color: rgba(255,255,255,.16); background: rgba(0,0,0,.62); box-shadow: 0 -4px 18px rgba(0,0,0,.18); }
+.app-page-trending .bottom-nav button { color: rgba(255,255,255,.78); }
+.app-page-trending .bottom-nav button.nav-active { color: #fff; background: rgba(255,255,255,.2); }
+.video-history-clear { width: 38px; height: 38px; flex: 0 0 38px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.28); border-radius: 50%; color: #fff; background: rgba(0,0,0,.24); }
+.video-feed-state { position: absolute; z-index: 4; top: 50%; left: 50%; width: min(88%,420px); padding: 18px; transform: translate(-50%,-50%); border: 1px solid rgba(255,255,255,.18); border-radius: 18px; color: #fff; background: rgba(22,29,24,.92); text-align: center; }
+.video-feed-state p { margin: 0; }
+.video-feed-state button { min-height: 38px; margin-top: 12px; padding: 8px 14px; border: 1px solid rgba(255,255,255,.5); border-radius: 999px; color: #fff; background: rgba(0,0,0,.6); font-weight: 700; }
+.video-end-message { display: block; margin-top: 8px; color: rgba(255,255,255,.78); font-size: 11px; }

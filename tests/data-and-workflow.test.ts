@@ -17,16 +17,20 @@ test("recipe database có ID hợp lệ, bước rõ ràng, tham chiếu nguyên
   }
 });
 
-test("trend data có schema hợp lệ và chỉ chứa video từ YouTube thật", async () => {
-  const data = JSON.parse(await readFile(new URL("../src/data/trending.json", import.meta.url), "utf8"));
-  assert.ok(data.updatedAt === null || Number.isFinite(Date.parse(data.updatedAt)));
+test("YouTube catalog có schema hợp lệ, ID duy nhất và metadata freshness", async () => {
+  const data = JSON.parse(await readFile(new URL("../public/data/youtube/catalog.json", import.meta.url), "utf8"));
+  assert.equal(data.schemaVersion, 1);
+  assert.ok(Number.isFinite(Date.parse(data.updatedAt)));
   assert.ok(Array.isArray(data.videos));
-  assert.equal(data.source, "youtube");
+  assert.equal(new Set(data.videos.map((video: { videoId: string }) => video.videoId)).size, data.videos.length);
   for (const video of data.videos) {
-    assert.ok(video.id && video.title && video.fetchedAt);
+    assert.ok(video.videoId && video.title && video.lastValidatedAt && video.discoveredAt);
     assert.equal(video.platform, "youtube");
-    assert.equal(video.videoUrl, `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}`);
-    if (video.thumbnailUrl) assert.equal(new URL(video.thumbnailUrl).protocol, "https:");
+    assert.equal(video.id, video.videoId);
+    assert.equal(video.videoUrl, `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}`);
+    assert.ok(["unknown", "available"].includes(video.availabilityStatus));
+    assert.ok(["accepted", "needs_review"].includes(video.moderationStatus));
+    assert.equal(new URL(video.thumbnailUrl).protocol, "https:");
     if (video.publishedAt) assert.ok(Number.isFinite(Date.parse(video.publishedAt)));
   }
 });

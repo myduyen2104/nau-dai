@@ -31,13 +31,15 @@ import {
   ShoppingBasket,
   Settings,
   SlidersHorizontal,
+  Sun,
   UtensilsCrossed,
+  Video,
   X,
 } from "lucide-react";
 import { ingredients as coreIngredients, recipes, nameFor as coreNameFor, type Ingredient, type Recipe } from "./data";
-import trendingData from "./data/trending.json";
 import copperCatalog from "./data/recipes/copper-vietnam.json";
 import type { SavedVideo, TrendingVideo } from "./types/trending";
+import { clearVideoWatchHistory, freshYoutubeCatalogVideos, inferYoutubeFeedInterests, newVideoSessionSeed, rankYoutubeFeed, readVideoWatchHistory, recordVideoWatchEvent, type YouTubeCatalogVideo, type VideoWatchRecord } from "./services/youtubeFeed";
 import { formatRecipeQuantity, isScalableRecipeUnit, scaleRecipeQuantity } from "./utils/servings";
 import { recordRecentRecipe, visibleRecentRecipes } from "./utils/recipeHistory";
 import { migrateCanonicalIdList } from "./utils/canonicalIdMigration";
@@ -107,6 +109,49 @@ type VoiceRecognitionWindow = Window & {
   SpeechRecognition?: new () => VoiceRecognition;
   webkitSpeechRecognition?: new () => VoiceRecognition;
 };
+type YouTubePlayer = {
+  destroy: () => void;
+  playVideo: () => void;
+  pauseVideo: () => void;
+  getCurrentTime: () => number;
+  getIframe: () => HTMLIFrameElement;
+};
+type YouTubePlayerApi = {
+  PlayerState: { ENDED: number; PLAYING: number; PAUSED: number };
+  Player: new (element: HTMLElement, options: {
+    videoId?: string;
+    playerVars?: Record<string, string | number>;
+    events: {
+      onReady: (event: { target: YouTubePlayer }) => void;
+      onStateChange: (event: { target: YouTubePlayer; data: number }) => void;
+      onError: (event: { data: number }) => void;
+    };
+  }) => YouTubePlayer;
+};
+declare global {
+  interface Window {
+    YT?: YouTubePlayerApi;
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+let youtubePlayerApiPromise: Promise<YouTubePlayerApi> | null = null;
+function loadYouTubePlayerApi(): Promise<YouTubePlayerApi> {
+  if (window.YT?.Player) return Promise.resolve(window.YT);
+  if (!youtubePlayerApiPromise) youtubePlayerApiPromise = new Promise((resolve, reject) => {
+    const previousReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      previousReady?.();
+      if (window.YT?.Player) resolve(window.YT);
+      else reject(new Error("YouTube player API did not initialize"));
+    };
+    const script = document.createElement("script");
+    script.src = "https://www.youtube.com/iframe_api";
+    script.async = true;
+    script.onerror = () => reject(new Error("YouTube player API could not load"));
+    document.head.appendChild(script);
+  });
+  return youtubePlayerApiPromise;
+}
 const isIOSDevice = () => /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || ("standalone" in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
 function IngredientVisual({ name, emoji, className }: { name: string; emoji: string; className: string }) {
@@ -176,7 +221,6 @@ const persist = (key: string, value: unknown) => {
   try { localStorage.setItem(key, JSON.stringify(value)); return true; }
   catch { return false; }
 };
-const importedTrending = trendingData as { updatedAt: string | null; videos: TrendingVideo[] };
 const coreIngredientDefaults = new Map(coreIngredients.map((ingredient) => [ingredient.id, ingredient.defaultUnit]));
 let ingredients: Ingredient[] = coreIngredients;
 let sourceIngredientCatalogLoad: Promise<void> | null = null;
@@ -356,6 +400,13 @@ function App() {
   const [videoNoteDraft, setVideoNoteDraft] = useState("");
   const [videoFormError, setVideoFormError] = useState("");
   const [activeTrendingVideoId, setActiveTrendingVideoId] = useState<string | null>(null);
+  const [trendingVideos, setTrendingVideos] = useState<YouTubeCatalogVideo[]>([]);
+  const [trendingCatalogStatus, setTrendingCatalogStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [trendingCatalogRetry, setTrendingCatalogRetry] = useState(0);
+  const [trendingCatalogUpdatedAt, setTrendingCatalogUpdatedAt] = useState<string | null>(null);
+  const [visibleTrendingCount, setVisibleTrendingCount] = useState(12);
+  const [failedTrendingVideoIds, setFailedTrendingVideoIds] = useState<string[]>([]);
+  const [videoHistoryMessage, setVideoHistoryMessage] = useState("");
   const [libraryQuery, setLibraryQuery] = useState(() => new URLSearchParams(window.location.search).get("q") ?? "");
   const [libraryCategory, setLibraryCategory] = useState("Tất cả");
   const [libraryStatus, setLibraryStatus] = useState("Tất cả");
@@ -432,6 +483,7 @@ function App() {
     [cookVibrationOn, setCookVibrationOn] = useState(() => load("fresh-cook-vibration", true)),
     [cookAlarmVisible, setCookAlarmVisible] = useState(false),
     [cookNotificationPermission, setCookNotificationPermission] = useState<NotificationPermission | "unsupported">(() => typeof Notification === "undefined" ? "unsupported" : Notification.permission),
+    [cookKeepAwake, setCookKeepAwake] = useState(false),
     [cookVoiceListening, setCookVoiceListening] = useState(false),
     [cookVoiceMessage, setCookVoiceMessage] = useState("Chạm mic để bật lệnh giọng nói"),
     [done, setDone] = useState<number[]>(initialCookingSession.done),
@@ -445,15 +497,29 @@ function App() {
   const recipeDetailScrollRef = useRef<HTMLDivElement | null>(null);
   const mainScrollRef = useRef<HTMLElement | null>(null);
   const trendingReturnPageRef = useRef<Page>(page === "trending" ? "home" : page);
+  const trendingFeedRef = useRef<HTMLDivElement | null>(null);
+  const youtubePlayerContainerRef = useRef<HTMLElement | null>(null);
+  const youtubePlayerRef = useRef<YouTubePlayer | null>(null);
+  const trendingWatchHistoryRef = useRef<VideoWatchRecord[]>([]);
+  const savedVideosRef = useRef(savedVideos);
+  const seenTrendingVideoIdsRef = useRef(new Set<string>());
+  const trendingSessionCounterRef = useRef(0);
   const restoredCookSessionRef = useRef(Boolean(initialCookingSession.recipe));
   const voiceRecognitionRef = useRef<VoiceRecognition | null>(null);
   const cookingStepRef = useRef(cookingStep);
   const alarmAudioRef = useRef<HTMLAudioElement | null>(null);
+  const cookWakeLockRef = useRef<WakeLockSentinel | null>(null);
   const alarmDismissButtonRef = useRef<HTMLButtonElement | null>(null);
   const vibrationIntervalRef = useRef<number | null>(null);
   const vibrationTimeoutRef = useRef<number | null>(null);
   const alarmFiredForRef = useRef("");
   const timerExpiredForRef = useRef("");
+  const persistVideoHistoryEvent = async (videoId: string, event: "seen" | "started" | "watched" | "completed" | "skipped", watchedSeconds?: number) => {
+    await recordVideoWatchEvent(videoId, event, watchedSeconds);
+    const nextHistory = await readVideoWatchHistory();
+    trendingWatchHistoryRef.current = nextHistory;
+  };
+  useEffect(() => { savedVideosRef.current = savedVideos; }, [savedVideos]);
   const popNavigationRef = useRef(false);
   const lastNavigationRef = useRef({ page, mode: discoveryMode });
   cookingStepRef.current = cookingStep;
@@ -491,6 +557,37 @@ function App() {
     const interval = window.setInterval(() => setClockNow(new Date()), 60_000);
     return () => window.clearInterval(interval);
   }, []);
+  useEffect(() => {
+    if (page !== "cook") {
+      setCookKeepAwake(false);
+      return;
+    }
+    if (!cookKeepAwake || !("wakeLock" in navigator)) return;
+    let disposed = false;
+    const requestScreenLock = async () => {
+      if (document.visibilityState !== "visible" || (cookWakeLockRef.current && !cookWakeLockRef.current.released)) return;
+      try {
+        const lock = await navigator.wakeLock.request("screen");
+        if (disposed) { await lock.release(); return; }
+        cookWakeLockRef.current = lock;
+        lock.addEventListener("release", () => {
+          if (cookWakeLockRef.current === lock) cookWakeLockRef.current = null;
+        }, { once: true });
+      } catch {
+        setCookKeepAwake(false);
+      }
+    };
+    const resumeScreenLock = () => { if (document.visibilityState === "visible") void requestScreenLock(); };
+    void requestScreenLock();
+    document.addEventListener("visibilitychange", resumeScreenLock);
+    return () => {
+      disposed = true;
+      document.removeEventListener("visibilitychange", resumeScreenLock);
+      const lock = cookWakeLockRef.current;
+      cookWakeLockRef.current = null;
+      if (lock && !lock.released) void lock.release();
+    };
+  }, [page, cookKeepAwake]);
   useEffect(() => { mainScrollRef.current?.scrollTo({ top: 0 }); }, [page]);
   useEffect(() => { if (page !== "trending") trendingReturnPageRef.current = page; }, [page]);
   useEffect(() => {
@@ -598,6 +695,7 @@ function App() {
   const [mnnmCatalog, setMnnmCatalog] = useState<MnnmCatalogItem[] | null>(null);
   const [mnnmRecent, setMnnmRecent] = useState<MnnmCatalogItem[]>([]);
   const [knorrRecipes, setKnorrRecipes] = useState<Recipe[] | null>(null);
+  const [knorrHomeRecipes, setKnorrHomeRecipes] = useState<Recipe[] | null>(null);
   const [knorrLoad, setKnorrLoad] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [knorrRetry, setKnorrRetry] = useState(0);
   const [mnnmLoad, setMnnmLoad] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -672,6 +770,18 @@ function App() {
       .catch(() => undefined);
     return () => controller.abort();
   }, [page, mnnmRecent.length]);
+  useEffect(() => {
+    if (page !== "home" || knorrHomeRecipes !== null) return;
+    const controller = new AbortController();
+    fetch("/data/knorr/home-recommendations.json", { signal: controller.signal })
+      .then((response) => { if (!response.ok) throw new Error("Knorr home recommendations request failed"); return response.json(); })
+      .then((data: unknown) => {
+        if (!Array.isArray(data) || data.length > 24 || data.some((recipe) => recipe?.source?.title !== "Knorr Việt Nam" || !Array.isArray(recipe.steps) || recipe.steps.length === 0)) throw new Error("Knorr home recommendations are invalid");
+        setKnorrHomeRecipes(data as Recipe[]);
+      })
+      .catch(() => { if (!controller.signal.aborted) setKnorrHomeRecipes([]); });
+    return () => controller.abort();
+  }, [page, knorrHomeRecipes]);
   useEffect(() => {
     const savedNeedsKnorr = page === "favorites" && favorites.some((id) => id.startsWith("knorr:"));
     if ((page !== "explore" && page !== "fridge" && !(page === "home" && stock.length > 0) && !savedNeedsKnorr) || knorrRecipes) return;
@@ -752,22 +862,120 @@ function App() {
     }).catch(() => { /* Keep stored IDs intact when the migration map cannot load. */ });
     return () => { active = false; };
   }, []);
-  useEffect(() => { if (canPersist && !persist("fridge-saved-videos", savedVideos)) setStorageWarning("Không thể lưu danh sách video trên thiết bị."); }, [savedVideos, canPersist]);
   useEffect(() => {
     if (page !== "trending") {
       setActiveTrendingVideoId(null);
       return;
     }
-    if (!activeTrendingVideoId || typeof IntersectionObserver === "undefined") return;
-    const card = [...document.querySelectorAll<HTMLElement>("[data-trend-video-id]")]
-      .find((element) => element.dataset.trendVideoId === activeTrendingVideoId);
-    if (!card) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting || entry.intersectionRatio < 0.25) setActiveTrendingVideoId(null);
-    }, { threshold: [0, 0.25] });
-    observer.observe(card);
+    let cancelled = false;
+    const controller = new AbortController();
+    setTrendingCatalogStatus("loading");
+    setTrendingVideos([]);
+    setTrendingCatalogUpdatedAt(null);
+    setActiveTrendingVideoId(null);
+    setVideoHistoryMessage("");
+    const sessionSeed = (newVideoSessionSeed() + (++trendingSessionCounterRef.current * 0x9e3779b9)) >>> 0;
+    void Promise.all([
+      fetch("/data/youtube/catalog.json", { signal: controller.signal, cache: "no-store" }).then((response) => {
+        if (!response.ok) throw new Error(`Video catalog unavailable (${response.status})`);
+        return response.json() as Promise<{ schemaVersion: number; updatedAt: string; videos: YouTubeCatalogVideo[] }>;
+      }),
+      readVideoWatchHistory(),
+    ]).then(([catalog, history]) => {
+      if (cancelled) return;
+      if (catalog.schemaVersion !== 1 || !Array.isArray(catalog.videos)) throw new Error("Video catalog has an unsupported format");
+      const freshVideos = freshYoutubeCatalogVideos(catalog.videos);
+      const interests = [...(prefs.vegetarian ? ["món chay"] : []), ...(prefs.quick ? ["món nhanh"] : []), ...inferYoutubeFeedInterests(freshVideos, history, savedVideosRef.current.map((video) => video.url))];
+      const ranked = rankYoutubeFeed(freshVideos, history, sessionSeed, interests);
+      trendingWatchHistoryRef.current = history;
+      setTrendingVideos(ranked);
+      setTrendingCatalogUpdatedAt(catalog.updatedAt ?? null);
+      setVisibleTrendingCount(Math.min(12, ranked.length));
+      setFailedTrendingVideoIds([]);
+      seenTrendingVideoIdsRef.current = new Set();
+      setTrendingCatalogStatus("ready");
+    }).catch(() => {
+      if (!cancelled && !controller.signal.aborted) setTrendingCatalogStatus("error");
+    });
+    return () => { cancelled = true; controller.abort(); };
+  }, [page, prefs.vegetarian, prefs.quick, trendingCatalogRetry]);
+  useEffect(() => {
+    if (page !== "trending" || !trendingVideos.length || typeof IntersectionObserver === "undefined") return;
+    const ratios = new Map<string, number>();
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const videoId = (entry.target as HTMLElement).dataset.trendVideoId;
+        if (!videoId) continue;
+        ratios.set(videoId, entry.isIntersecting ? entry.intersectionRatio : 0);
+      }
+      const best = [...ratios.entries()].sort((a, b) => b[1] - a[1])[0];
+      if (!best || best[1] < 0.6) return;
+      const nextId = best[0];
+      setActiveTrendingVideoId((previousId) => {
+        if (previousId === nextId) return previousId;
+        if (previousId && !trendingWatchHistoryRef.current.some((record) => record.videoId === previousId && record.startedAt)) {
+          void persistVideoHistoryEvent(previousId, "skipped");
+        }
+        if (!seenTrendingVideoIdsRef.current.has(nextId)) {
+          seenTrendingVideoIdsRef.current.add(nextId);
+          void persistVideoHistoryEvent(nextId, "seen");
+        }
+        return nextId;
+      });
+    }, { threshold: [0, 0.25, 0.5, 0.6, 0.8, 1] });
+    document.querySelectorAll<HTMLElement>("[data-trend-video-id]").forEach((card) => observer.observe(card));
     return () => observer.disconnect();
-  }, [page, activeTrendingVideoId]);
+  }, [page, trendingVideos, visibleTrendingCount]);
+  useEffect(() => {
+    if (page !== "trending" || !activeTrendingVideoId || failedTrendingVideoIds.includes(activeTrendingVideoId)) return;
+    const host = youtubePlayerContainerRef.current;
+    if (!host) return;
+    let disposed = false;
+    let player: YouTubePlayer | null = null;
+    void loadYouTubePlayerApi().then((api) => {
+      if (disposed || !youtubePlayerContainerRef.current) return;
+      player = new api.Player(host, {
+        events: {
+          onReady: (event) => {
+            youtubePlayerRef.current = event.target;
+            event.target.playVideo();
+          },
+          onStateChange: (event) => {
+            const currentSeconds = Math.max(0, event.target.getCurrentTime() || 0);
+            if (event.data === api.PlayerState.PLAYING) void persistVideoHistoryEvent(activeTrendingVideoId, "started");
+            if (event.data === api.PlayerState.PAUSED && currentSeconds >= 20) void persistVideoHistoryEvent(activeTrendingVideoId, "watched", currentSeconds);
+            if (event.data === api.PlayerState.ENDED) {
+              if (currentSeconds >= 20) void persistVideoHistoryEvent(activeTrendingVideoId, "watched", currentSeconds);
+              void persistVideoHistoryEvent(activeTrendingVideoId, "completed");
+            }
+          },
+          onError: () => {
+            setFailedTrendingVideoIds((ids) => ids.includes(activeTrendingVideoId) ? ids : [...ids, activeTrendingVideoId]);
+            setVideoHistoryMessage("YouTube không phát được clip này. Bạn có thể mở video gốc.");
+          },
+        },
+      });
+      youtubePlayerRef.current = player;
+    }).catch(() => {
+      if (!disposed) {
+        setFailedTrendingVideoIds((ids) => ids.includes(activeTrendingVideoId) ? ids : [...ids, activeTrendingVideoId]);
+        setVideoHistoryMessage("Không tải được trình phát YouTube. Hãy kiểm tra kết nối mạng.");
+      }
+    });
+    return () => {
+      disposed = true;
+      if (youtubePlayerRef.current === player) youtubePlayerRef.current = null;
+      if (player?.getIframe?.().isConnected) player.destroy();
+    };
+  }, [page, activeTrendingVideoId, failedTrendingVideoIds]);
+  useEffect(() => {
+    const pauseWhenHidden = () => {
+      if (document.visibilityState !== "visible") youtubePlayerRef.current?.pauseVideo();
+    };
+    document.addEventListener("visibilitychange", pauseWhenHidden);
+    return () => document.removeEventListener("visibilitychange", pauseWhenHidden);
+  }, []);
+  useEffect(() => { if (canPersist && !persist("fridge-saved-videos", savedVideos)) setStorageWarning("Không thể lưu danh sách video trên thiết bị."); }, [savedVideos, canPersist]);
   useEffect(() => { if (canPersist && !persist("fresh-shopping-list", shoppingItems)) setStorageWarning("Không thể lưu danh sách đi chợ trên thiết bị."); }, [shoppingItems, canPersist]);
   useEffect(() => {
     if (!modal) return;
@@ -893,11 +1101,21 @@ function App() {
   const homeFeaturedRecipe = homeNewestFeatured ? mnnmRecipeFor(mnnmRecent[0]) : homeFeatureRecipes.length ? homeFeatureRecipes[homeFeatureIndex % homeFeatureRecipes.length] : null;
   const homeMealCandidates = useMemo(() => {
     const preferred = previewRecommendations.map((item) => recipeById.get(item.recipeId)).filter((recipe): recipe is Recipe => Boolean(recipe));
-    const sourceCatalogRecipes = (mnnmCatalog ?? []).filter((item) => item.has_instructions).map((item) => mnnmRecipeFor(item));
-    const pool = [...new Map([...preferred, ...sourceCatalogRecipes, ...allLibraryRecipes]
+    const sourceCatalogRecipes = [...(mnnmCatalog ?? []).filter((item) => item.has_instructions).map((item) => mnnmRecipeFor(item)), ...mnnmRecent.filter((item) => item.has_instructions).map((item) => mnnmRecipeFor(item))];
+    const knorrCandidates = knorrRecipes ?? knorrHomeRecipes ?? [];
+    const pool = [...new Map([...preferred, ...sourceCatalogRecipes, ...knorrCandidates, ...allLibraryRecipes]
       .filter((recipe) => (recipe.steps.length > 0 || (recipe.source.title === "Món Ngon Mỗi Ngày" && recipe.dataStatus === "full_recipe")) && recipe.id !== homeFeaturedRecipe?.id)
-      .map((recipe) => [recipe.id, recipe])).values()]
-      .sort((a, b) => Number(!["Món Ngon Mỗi Ngày", "Knorr Việt Nam"].includes(a.source.title)) - Number(!["Món Ngon Mỗi Ngày", "Knorr Việt Nam"].includes(b.source.title)) || a.name.localeCompare(b.name, "vi"));
+      .map((recipe) => [recipe.id, recipe])).values()];
+    const byNewest = (a: Recipe, b: Recipe) => (Date.parse(b.publishedAt ?? "") || 0) - (Date.parse(a.publishedAt ?? "") || 0) || a.name.localeCompare(b.name, "vi");
+    const mnnmPriority = pool.filter((recipe) => recipe.source.title === "Món Ngon Mỗi Ngày").sort(byNewest);
+    const knorrPriority = pool.filter((recipe) => recipe.source.title === "Knorr Việt Nam").sort(byNewest);
+    const otherRecipes = pool.filter((recipe) => !["Món Ngon Mỗi Ngày", "Knorr Việt Nam"].includes(recipe.source.title));
+    const prioritizedSources: Recipe[] = [];
+    for (let index = 0; index < Math.max(mnnmPriority.length, knorrPriority.length); index += 1) {
+      if (mnnmPriority[index]) prioritizedSources.push(mnnmPriority[index]);
+      if (knorrPriority[index]) prioritizedSources.push(knorrPriority[index]);
+    }
+    pool.splice(0, pool.length, ...prioritizedSources, ...otherRecipes);
     if (isAfternoonSnackTime) {
       const snackPool = pool.filter((recipe) => recipe.category === "Món ăn nhẹ" || recipe.tags.some((tag) => /ăn vặt|món nhậu|ăn chơi|lai rai/i.test(tag)));
       if (snackPool.length) {
@@ -944,7 +1162,7 @@ function App() {
     if (picked.length === 3 && new Set(picked.map((recipe) => recipe.id)).size === 3) return picked;
     const fallback = [...picked, ...pool.filter((recipe) => !picked.some((selected) => selected.id === recipe.id))];
     return fallback.slice(0, Math.min(3, pool.length));
-  }, [previewRecommendations, recipeById, homeMealIndex, homeFeaturedRecipe, mnnmCatalog, ingredientIndex, isAfternoonSnackTime]);
+  }, [previewRecommendations, recipeById, homeMealIndex, homeFeaturedRecipe, mnnmCatalog, mnnmRecent, knorrRecipes, knorrHomeRecipes, allLibraryRecipes, ingredientIndex, isAfternoonSnackTime]);
   const selectedAvoidIds = useMemo(() => new Set(prefs.avoid.map((value) => canonicalIngredientPreference(value, ingredientIndex))), [prefs.avoid, ingredientIndex]);
   const avoidCandidates = useMemo(() => {
     const query = canonical(avoidQuery);
@@ -1022,7 +1240,7 @@ function App() {
   }
   function openRecipe(r: Recipe, preserveVariantGroup = false) {
     if (r.source.title === "Món Ngon Mỗi Ngày") {
-      const item = mnnmCatalog?.find((entry) => entry.id === r.id);
+      const item = mnnmCatalog?.find((entry) => entry.id === r.id) ?? mnnmRecent.find((entry) => entry.id === r.id);
       if (item) { openMnnmRecipe(item, preserveVariantGroup); return; }
     }
     if (!preserveVariantGroup) setActiveLibraryResultGroup(null);
@@ -1393,6 +1611,7 @@ function App() {
     const best = ["ready", "substitution", "use_soon", "almost", "discover"].find((candidate) => recommendationsByCategory[candidate as keyof typeof recommendationsByCategory].length) as "ready" | "substitution" | "almost" | "use_soon" | "discover" | undefined;
     showTab(best ?? "ready");
   }
+  const visibleTrendingVideos = trendingVideos.slice(0, visibleTrendingCount);
   const label =
     page === "home"
       ? "Trang chủ"
@@ -1403,7 +1622,7 @@ function App() {
           : page === "explore"
             ? "Khám phá món Việt"
           : page === "trending"
-            ? importedTrending.videos.length ? "Video món ăn" : "Video muốn thử"
+            ? "Video món ăn"
           : page === "shopping"
             ? "Sổ đi chợ"
           : page === "cook"
@@ -1486,13 +1705,25 @@ function App() {
         {page === "cook" ? <>
           <button className="cook-close" onClick={returnToRecipeFromCooking} aria-label="Quay lại chi tiết món ăn"><ArrowLeft size={20}/></button>
           <div className="cook-header-title"><small>{cookingRecipe?.name ?? "Đang nấu"}</small><strong>Đang nấu · Bước {cookingRecipe ? cookingStep + 1 : 0}/{cookingRecipe?.steps.length ?? 0}</strong></div>
+          <button className={`cook-awake-toggle${cookKeepAwake ? " is-awake" : ""}`} onClick={() => setCookKeepAwake((awake) => !awake)} disabled={!("wakeLock" in navigator)} aria-pressed={cookKeepAwake} aria-label={cookKeepAwake ? "Tắt giữ màn hình sáng" : "Giữ màn hình sáng"} title={"wakeLock" in navigator ? "Giữ màn hình sáng trong lúc nấu" : "Trình duyệt này chưa hỗ trợ giữ màn hình sáng"}><Sun size={16}/><span>{cookKeepAwake ? "Đang sáng" : "Giữ sáng"}</span></button>
           <button className={`cook-handsfree${cookVoiceListening ? " is-listening" : ""}`} onClick={toggleCookVoice} aria-pressed={cookVoiceListening} aria-label={cookVoiceListening ? "Đang nghe" : "Rảnh tay"}><Mic size={16}/>{cookVoiceListening ? "Đang nghe" : "Rảnh tay"}</button>
         </> : page === "trending" ? <>
           <button className="video-back" onClick={() => setPage(trendingReturnPageRef.current)} aria-label="Quay lại"><ArrowLeft size={20}/></button>
           <span className="video-topbar-title">Video hướng dẫn nấu ăn</span>
-          <span className="video-topbar-count">{importedTrending.videos.length} video</span>
+          <span className="video-topbar-count">{trendingVideos.length} video</span>
+          <button className="video-history-clear" onClick={() => {
+            void clearVideoWatchHistory().then(() => {
+              trendingWatchHistoryRef.current = [];
+              const interests = [...(prefs.vegetarian ? ["món chay"] : []), ...(prefs.quick ? ["món nhanh"] : []), ...inferYoutubeFeedInterests(trendingVideos, [], savedVideosRef.current.map((video) => video.url))];
+              const next = rankYoutubeFeed(trendingVideos, [], newVideoSessionSeed(), interests);
+              setTrendingVideos(next);
+              setActiveTrendingVideoId(null);
+              setVideoHistoryMessage("Đã xóa lịch sử xem trên thiết bị này.");
+              trendingFeedRef.current?.scrollTo({ top: 0 });
+            });
+          }} aria-label="Xóa lịch sử video đã xem" title="Xóa lịch sử video đã xem"><History size={18}/></button>
         </> : <>
-          <div className="brand"><div className="brandicon"><Leaf size={18}/></div><span>fresh<span className="branddot">.</span></span></div>
+          <div className="brand"><img className="brand-logo-image" src="/icon.svg" alt=""/><span className="brand-wordmark"><span>Nấu</span><span>Đại</span><span>Đi</span></span></div>
           <div className="topbar-actions">
             <button className={`topbar-action${page === "shopping" ? " is-active" : ""}`} onClick={() => setPage("shopping")} aria-label={`Sổ đi chợ${shoppingItems.filter((item) => !item.checked).length ? `, còn ${shoppingItems.filter((item) => !item.checked).length} món` : ""}`}>
               <ShoppingBasket size={19}/>{shoppingItems.filter((item) => !item.checked).length > 0 && <span className="topbar-count">{shoppingItems.filter((item) => !item.checked).length}</span>}
@@ -1525,38 +1756,32 @@ function App() {
                 </div>}
               </div>
             </section>
-            {mnnmRecent.length > 0 && <section className="home-new-recipes" aria-label="Món mới từ Món Ngon Mỗi Ngày">
-              <div className="section-title-row"><div><span className="home-section-kicker">CẬP NHẬT CHỦ NHẬT</span><h2>Món mới nhất</h2></div><button className="text-button" onClick={() => { setLibrarySourceFilter("mnnm"); setLibraryQuery(""); setDiscoveryMode("all"); setPage("explore"); }}>Tất cả món mới <ChevronRight size={15}/></button></div>
-              <div className="home-new-recipes-list">{mnnmRecent.slice(0, 4).map((item) => <button className="home-new-recipe" key={item.id} onClick={() => openMnnmRecipe(item)}>
-                {item.image_url ? <img src={item.image_url} alt="" loading="lazy" decoding="async"/> : <span className="home-new-recipe-placeholder" aria-hidden="true">🍲</span>}
-                <span className="home-new-recipe-copy"><small>{item.published_at ? `Mới · ${new Date(item.published_at).toLocaleDateString("vi-VN")}` : "Mới cập nhật"}</small><b>{item.name}</b><span>{item.category} · Xem công thức</span></span><ChevronRight size={17}/>
-              </button>)}</div>
-            </section>}
             {homeFeaturedRecipe ? <section className="home-feature" aria-label="Món ăn gợi ý hôm nay">
               <button className="home-feature-image" data-emoji={homeFeaturedRecipe.emoji} onClick={() => openRecipe(homeFeaturedRecipe)} aria-label={`Mở món ${homeFeaturedRecipe.name}`}>
                 {homeFeaturedRecipe.imageUrl ? <img src={homeFeaturedRecipe.imageUrl} alt={`Ảnh món ${homeFeaturedRecipe.name}`} decoding="async" onLoad={(event) => preferHigherResolutionImage(event, homeFeaturedRecipe.imageFallbacks)} onError={(event) => fallbackRecipeSourceImage(event, homeFeaturedRecipe)}/> : recipeImageFor(homeFeaturedRecipe.id) ? <img src={recipeImageFor(homeFeaturedRecipe.id)!.imagePath} alt={recipeImageFor(homeFeaturedRecipe.id)!.imageType === "ai_illustration" ? `Ảnh minh họa AI cho món ${homeFeaturedRecipe.name}` : `Ảnh ${homeFeaturedRecipe.name}`} decoding="async" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/> : <span aria-hidden="true">{homeFeaturedRecipe.emoji}</span>}
               </button>
               <span className="home-feature-kicker">{stock.length ? "GỢI Ý TỪ TỦ LẠNH" : homeNewestFeatured ? "MÓN MỚI NHẤT TỪ MÓN NGON MỖI NGÀY" : "MÓN THAM KHẢO HÔM NAY"}</span>
-              {homeFeatureRecipes.length > 1 && <button className="home-feature-refresh" onClick={() => setHomeFeatureIndex((index) => (index + 1) % homeFeatureRecipes.length)} aria-label="Đổi món gợi ý"><RefreshCw size={16}/></button>}
+              {!homeNewestFeatured && homeFeatureRecipes.length > 1 && <button className="home-feature-refresh" onClick={() => setHomeFeatureIndex((index) => (index + 1) % homeFeatureRecipes.length)} aria-label="Đổi món gợi ý"><RefreshCw size={16}/></button>}
               <button className="home-feature-save" onClick={() => toggleFavorite(homeFeaturedRecipe.id)} aria-label={favorites.includes(homeFeaturedRecipe.id) ? "Bỏ lưu món" : "Lưu món"} aria-pressed={favorites.includes(homeFeaturedRecipe.id)}><Heart size={19} fill={favorites.includes(homeFeaturedRecipe.id) ? "currentColor" : "none"}/></button>
               <div className="home-feature-copy">
                 <div className="home-feature-meta"><span><Clock size={14}/>{homeFeaturedRecipe.totalTime != null ? `~${homeFeaturedRecipe.totalTime} phút` : "Thời gian chưa rõ"}</span><span>{homeFeaturedRecipe.difficulty}</span><span>{homeFeaturedRecipe.verificationStatus === "verified" ? "Đã xác minh" : "Chưa xác minh độc lập"}</span></div>
                 <h2>{homeFeaturedRecipe.name}</h2>
-                <p>{homeFeaturedRecipe.description || (homeFeaturedRecipe.dataStatus === "full_recipe" ? "Mở món để xem nguyên liệu và cách chế biến." : "Thông tin món hiện có trong thư viện Fresh.")}</p>
+                <p>{homeFeaturedRecipe.description || (homeFeaturedRecipe.dataStatus === "full_recipe" ? "Mở món để xem nguyên liệu và cách chế biến." : "Thông tin món hiện có trong thư viện Nấu Đại Đi.")}</p>
                 <button className="home-feature-cta" onClick={() => openRecipe(homeFeaturedRecipe)}>Xem công thức &amp; cách nấu <ArrowRight size={18}/></button>
               </div>
             </section> : <section className="home-feature-empty"><b>Chưa có công thức nổi bật</b><p>Mở thư viện để chọn món hoặc thêm nguyên liệu vào tủ.</p><button onClick={() => { if (stock.length) setDiscoveryMode("fridge"); setPage(stock.length ? "explore" : "fridge"); }}>{stock.length ? "Tìm món" : "Thêm nguyên liệu"}<ArrowRight size={16}/></button></section>}
             <section className="home-meal-section" aria-labelledby="home-meal-title">
-              <div className="home-meal-heading"><div><span className="home-section-kicker">GỢI Ý HÔM NAY</span><h2 id="home-meal-title">{isAfternoonSnackTime ? "Món ăn xế hôm nay" : "Mâm cơm hôm nay"}</h2></div>{homeFeatureRecipes.length > 1 && <button onClick={() => setHomeMealIndex((index) => index + 1)}><RefreshCw size={14}/> Đổi gợi ý</button>}</div>
+              <div className="home-meal-heading"><div><span className="home-section-kicker">GỢI Ý HÔM NAY</span><h2 id="home-meal-title">{isAfternoonSnackTime ? "Món ăn xế hôm nay" : "Mâm cơm hôm nay"}</h2></div>{homeMealCandidates.length > 1 && <button type="button" onClick={() => setHomeMealIndex((index) => index + 1)}><RefreshCw size={14}/> Đổi gợi ý</button>}</div>
               <p className="home-meal-intro">{isAfternoonSnackTime ? "Gợi ý món ăn vặt, món nhẹ và món lai rai từ thư viện công thức." : "Chọn từng món hợp với nguyên liệu nhà mình. Mỗi món mở hướng dẫn riêng và cho biết phần nào còn thiếu."}</p>
               {homeMealCandidates.length ? <div className="home-meal-card">
                 <div className="home-meal-list">{homeMealCandidates.map((recipe) => {
                   const image = recipeImageFor(recipe.id);
                   const thumbnail = image?.cardImagePath ?? image?.imagePath ?? recipe.imageUrl;
+                  const recipeSourceLabel = recipe.source.title === "Món Ngon Mỗi Ngày" ? "MNMN" : recipe.source.title === "Knorr Việt Nam" ? "Knorr" : recipe.category;
                   return <article className="home-meal-row" key={recipe.id}>
                     <button className="home-meal-recipe" onClick={() => openRecipe(recipe)}>
                       <span className="home-meal-image">{thumbnail ? <img src={thumbnail} alt={image?.imageType === "ai_illustration" ? `Ảnh minh họa AI cho món ${recipe.name}` : `Ảnh ${recipe.name}`} loading="lazy" decoding="async" onLoad={(event) => preferHigherResolutionImage(event, recipe.imageFallbacks)} onError={(event) => fallbackRecipeSourceImage(event, recipe)}/> : <span>{recipe.emoji}</span>}</span>
-                      <span className="home-meal-copy"><small>{recipe.category}{recipe.totalTime != null ? ` · ${recipe.totalTime} phút` : ""} · {recipe.verificationStatus === "verified" ? "Đã xác minh" : "Nguồn chưa xác minh"}</small><b>{recipe.name}</b></span>
+                      <span className="home-meal-copy"><small>{recipeSourceLabel} · {recipe.category}{recipe.totalTime != null ? ` · ${recipe.totalTime} phút` : ""} · {recipe.verificationStatus === "verified" ? "Đã xác minh" : "Nguồn chưa xác minh"}</small><b>{recipe.name}</b></span>
                     </button>
                     <button className="home-meal-open" onClick={() => openRecipe(recipe)} aria-label={`Xem ${recipe.name}`}><ChevronRight size={18}/></button>
                   </article>;
@@ -1643,7 +1868,7 @@ function App() {
               </div>
               {stock.length > 0 && <button className="fridge-summary-cta" onClick={showBestTab}><CookingPot size={18}/> Tìm cách nấu từ tủ lạnh <ArrowRight size={17}/></button>}
             </section>
-            {useSoonItems.length > 0 && <section className="fridge-rescue-panel"><div><span className="rescue-symbol"><Clock size={18}/></span><span><b>Cần ưu tiên dùng sớm</b><small>Fresh sẽ đưa các món này lên trước trong gợi ý.</small></span></div><div className="rescue-items">{useSoonItems.map((item) => { const name = ingredients.find((entry) => entry.id === item.id)?.name ?? item.name ?? item.id; return <span className="rescue-item" key={item.id}>{name}<small>{item.fresh === "urgent" ? "Dùng ngay" : item.expiresAt ? `Hạn ${item.expiresAt}` : "Sắp hết hạn"}</small></span>; })}</div></section>}
+            {useSoonItems.length > 0 && <section className="fridge-rescue-panel"><div><span className="rescue-symbol"><Clock size={18}/></span><span><b>Cần ưu tiên dùng sớm</b><small>Nấu Đại Đi sẽ đưa các món này lên trước trong gợi ý.</small></span></div><div className="rescue-items">{useSoonItems.map((item) => { const name = ingredients.find((entry) => entry.id === item.id)?.name ?? item.name ?? item.id; return <span className="rescue-item" key={item.id}>{name}<small>{item.fresh === "urgent" ? "Dùng ngay" : item.expiresAt ? `Hạn ${item.expiresAt}` : "Sắp hết hạn"}</small></span>; })}</div></section>}
             {recommendationsByCategory.ready.length > 0 && <section className="fridge-ready-section" aria-labelledby="fridge-ready-title">
               <div className="fridge-ready-heading"><div><h2 id="fridge-ready-title">Có thể nấu từ tủ</h2><p>Khớp theo tên nguyên liệu; kiểm tra lượng và tình trạng trước khi nấu.</p></div><button onClick={() => showTab("ready")}>Tất cả <ChevronRight size={15}/></button></div>
               <div className="fridge-ready-track">{recommendationsByCategory.ready.slice(0, 4).map((item) => {
@@ -1781,11 +2006,6 @@ function App() {
         )}
         {page === "home" && (
           <>
-            <section className="home-explore">
-              <div className="section-title-row"><div><h2>Khám phá món Việt</h2></div><button className="text-button" onClick={() => { setLibraryCategory("Tất cả"); setPage("explore"); }}>Tất cả món <ChevronRight size={15}/></button></div>
-              <div className="home-category-list">{libraryCategories.filter((item) => item !== "Tất cả").slice(0, 5).map((item) => <button key={item} onClick={() => { setLibraryCategory(item); setPage("explore"); }}><span aria-hidden="true">{item === "Món xào" ? <CookingPot size={17}/> : item === "Món chính" ? <ChefHat size={17}/> : item === "Món ăn nhẹ" ? <Leaf size={17}/> : item === "Món nước" ? <UtensilsCrossed size={17}/> : <CookingPot size={17}/>}</span>{item}<ChevronRight size={15}/></button>)}</div>
-              <button className="trending-entry" onClick={() => setPage("trending")}><span className="trending-entry-icon"><BookOpen size={19}/></span><span><b>{importedTrending.videos.length ? "Video món ăn" : "Video muốn thử"}</b><small>{importedTrending.videos.length ? `${importedTrending.videos.length} video từ YouTube` : "Lưu lại đường dẫn món bạn muốn nấu"}</small></span><ChevronRight size={17}/></button>
-            </section>
             <div className="mini-prefs">
               <button
                 className={prefs.vegetarian ? "selected" : ""}
@@ -1937,7 +2157,6 @@ function App() {
             })}</div> : sourceCatalogLoad === "loading" || mnnmLoad === "loading" || knorrLoad === "loading" ? <p role="status" className="source-catalog-state">Đang tải danh sách món…</p> : <div className="no-results"><span>🔎</span><h3>Không tìm thấy món phù hợp</h3><p>Thử tên món hoặc nguyên liệu khác, hoặc bỏ bớt bộ lọc.</p></div>}
             {libraryResults.length > libraryLimit && <button className="recommendation-load-more" onClick={() => setLibraryLimit((current) => current + 30)}>Xem thêm {Math.min(30, libraryResults.length - libraryLimit)} món</button>}
             <p className="dataset-attribution">Công thức và ảnh từ <a href="https://monngonmoingay.com/" target="_blank" rel="noreferrer">Món Ngon Mỗi Ngày</a> và <a href="https://www.knorr.com/vn/cong-thuc-nau-an.html" target="_blank" rel="noreferrer">Knorr Việt Nam</a>; mở từng món để đối chiếu nguồn. Dữ liệu nguồn chưa được rà soát thủ công. Copper: <a href="https://copperapp.app/study/what-the-world-cooks.html" target="_blank" rel="noreferrer">CC BY 4.0 · Cook the World</a>. Mục chỉ có nguyên liệu chưa được trình bày như công thức hoàn chỉnh.</p>
-            <button className="trending-entry explore-trending" onClick={() => setPage("trending")}><span className="trending-entry-icon"><BookOpen size={19}/></span><span><b>{importedTrending.videos.length ? "Video món ăn" : "Video muốn thử"}</b><small>{importedTrending.videos.length ? `${importedTrending.videos.length} video từ YouTube` : "Lưu lại đường dẫn món bạn muốn nấu"}</small></span><ChevronRight size={17}/></button>
             {sourceCatalogLoad === "error" && <p role="alert" className="source-catalog-state">Chưa tải được thêm món Dinh dưỡng 2598. <button className="text-button" onClick={() => setSourceCatalogRetry((current) => current + 1)}>Thử tải lại</button></p>}
             {mnnmLoad === "error" && <p role="alert" className="source-catalog-state">Chưa tải được danh sách món MNMN. <button className="text-button" onClick={() => { setMnnmCatalog(null); setMnnmRetry((current) => current + 1); }}>Thử tải lại</button></p>}
             {knorrLoad === "error" && <p role="alert" className="source-catalog-state">Chưa tải được danh sách món Knorr. <button className="text-button" onClick={() => { setKnorrRecipes(null); setKnorrRetry((current) => current + 1); }}>Thử tải lại</button></p>}
@@ -1948,20 +2167,26 @@ function App() {
           <>
             <section className="trending-intro">
               <div className="recipe-intro-icon"><BookOpen size={21}/></div>
-              <div><b>{importedTrending.videos.length ? "Video hướng dẫn nấu ăn" : "Video muốn thử"}</b><p>{importedTrending.videos.length ? `${importedTrending.videos.length} video · chạm để xem, vuốt lên để xem tiếp${importedTrending.updatedAt ? ` · cập nhật ${new Date(importedTrending.updatedAt).toLocaleDateString("vi-VN")}` : ""}.` : "Hiện chưa có video hướng dẫn. Bạn có thể lưu đường dẫn món muốn nấu."}</p></div>
+              <div><b>Video hướng dẫn nấu ăn</b><p>{trendingCatalogStatus === "ready" ? `${trendingVideos.length} video trong kho · thứ tự được tạo riêng cho phiên này${trendingCatalogUpdatedAt ? ` · đồng bộ ${new Date(trendingCatalogUpdatedAt).toLocaleDateString("vi-VN")}` : ""}. Metadata được lọc tự động; nội dung clip chưa được xem thủ công.` : "Vuốt để xem từng clip; lưu clip yêu thích hoặc mở nguồn YouTube."}</p></div>
             </section>
-            {importedTrending.videos.length > 0 && <>
-              <div className="trending-list trend-feed" aria-label="Luồng video hướng dẫn nấu ăn">{importedTrending.videos.map((video, index) => {
-                const linkedRecipe = video.recipeId ? recipes.find((recipe) => recipe.id === video.recipeId) : undefined;
+            {trendingCatalogStatus === "loading" && <div className="video-feed-state" role="status">Đang tải danh sách video…</div>}
+            {trendingCatalogStatus === "error" && <div className="video-feed-state" role="alert"><p>Chưa tải được catalog video. Kiểm tra mạng rồi thử lại.</p><button onClick={() => setTrendingCatalogRetry((count) => count + 1)}>Thử lại</button></div>}
+            {trendingCatalogStatus === "ready" && !trendingVideos.length && <div className="video-feed-state"><p>Chưa có clip nào được xác minh gần đây. Catalog sẽ được cập nhật theo lịch đồng bộ.</p></div>}
+            {trendingCatalogStatus === "ready" && trendingVideos.length > 0 && <>
+              <div ref={trendingFeedRef} className="trending-list trend-feed" aria-label="Luồng video hướng dẫn nấu ăn" onScroll={(event) => {
+                const element = event.currentTarget;
+                if (visibleTrendingCount < trendingVideos.length && element.scrollTop + element.clientHeight * 2.5 >= element.scrollHeight) setVisibleTrendingCount((count) => Math.min(trendingVideos.length, count + 12));
+              }}>{visibleTrendingVideos.map((video, index) => {
                 const saved = savedVideos.some((item) => item.url === video.videoUrl);
-                const playing = activeTrendingVideoId === video.id;
-                return <article className="trend-card trend-feed-card" data-trend-video-id={video.id} key={video.id}>
+                const playing = activeTrendingVideoId === video.videoId;
+                const failed = failedTrendingVideoIds.includes(video.videoId);
+                return <article className="trend-card trend-feed-card" data-trend-video-id={video.videoId} key={video.videoId}>
                   <div className="trend-player">
-                    {playing
-                      ? <iframe src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.id)}?autoplay=1&playsinline=1&rel=0`} title={`Video hướng dẫn nấu ăn: ${video.title}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
-                      : <button className="trend-player-poster" onClick={() => setActiveTrendingVideoId(video.id)} aria-label={`Phát video: ${video.title}`}><img src={video.thumbnailUrl} alt="" loading={index < 2 ? "eager" : "lazy"} onError={(event) => { event.currentTarget.style.visibility = "hidden"; }}/><span className="trend-play-button"><Play size={25} fill="currentColor"/></span><small>Chạm để xem</small></button>}
+                    {playing && !failed
+                      ? <iframe className="trend-youtube-frame" ref={(element) => { youtubePlayerContainerRef.current = element; }} src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.videoId)}?enablejsapi=1&autoplay=1&playsinline=1&rel=0&origin=${encodeURIComponent(window.location.origin)}`} title={`Video hướng dẫn nấu ăn: ${video.title}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/>
+                      : <button className="trend-player-poster" onClick={() => { if (failed) window.open(video.videoUrl, "_blank", "noopener,noreferrer"); else setActiveTrendingVideoId(video.videoId); }} aria-label={failed ? `Mở video gốc: ${video.title}` : `Phát video: ${video.title}`}><img src={`https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/hqdefault.jpg`} alt="" loading={index < 2 ? "eager" : "lazy"} onError={(event) => { event.currentTarget.style.visibility = "hidden"; }}/><span className="trend-play-button">{failed ? <ExternalLink size={25}/> : <Play size={25} fill="currentColor"/>}</span><small>{failed ? "Mở YouTube" : video.availabilityStatus === "unknown" ? "Chưa xác minh nhúng" : "Chạm để xem"}</small></button>}
                   </div>
-                  <div className="trend-card-body"><div className="trend-card-meta"><small>{video.creatorName || "YouTube"} · {video.publishedAt ? new Date(video.publishedAt).toLocaleDateString("vi-VN") : "Ngày đăng không có"}</small><span>{index + 1} / {importedTrending.videos.length}</span></div><h3>{video.title}</h3><p>{video.viewCount !== undefined ? `${video.viewCount.toLocaleString("vi-VN")} lượt xem` : "Video hướng dẫn nấu ăn"}</p>{linkedRecipe && <button className="trend-recipe-link" onClick={() => openRecipe(linkedRecipe)}>Mở công thức: {linkedRecipe.name}</button>}</div>
+                  <div className="trend-card-body"><div className="trend-card-meta"><small>{video.creatorName || "YouTube"} · {video.publishedAt ? new Date(video.publishedAt).toLocaleDateString("vi-VN") : "Ngày đăng không có"}{video.durationSeconds ? ` · ${Math.floor(video.durationSeconds / 60)} phút` : ""}</small><span>{index + 1} / {trendingVideos.length}</span></div><h3>{video.title}</h3><p>{video.moderationStatus === "accepted" ? "Lọc tự động từ metadata · chưa xem thủ công" : "Cần xem lại nội dung · chưa xác minh"}</p>{video.availabilityStatus === "unknown" && <small>Chưa xác minh khả năng nhúng · có thể clip không phát được.</small>}{videoHistoryMessage && playing && <small role="status">{videoHistoryMessage}</small>}{index === visibleTrendingVideos.length - 1 && visibleTrendingCount >= trendingVideos.length && <small className="video-end-message">Đã xem hết kho video hiện có. Clip mới sẽ xuất hiện sau lần đồng bộ tiếp theo.</small>}</div>
                   <div className="trend-card-actions"><button className={`trend-save-button${saved ? " is-saved" : ""}`} onClick={() => toggleSavedTrendingVideo(video)} aria-pressed={saved}><Bookmark size={16} fill={saved ? "currentColor" : "none"}/><span>{saved ? "Đã lưu" : "Lưu"}</span></button><a className="trend-original" href={video.videoUrl} target="_blank" rel="noreferrer" aria-label="Mở video trên YouTube"><ExternalLink size={18}/></a></div>
                 </article>;
               })}</div>
@@ -2232,7 +2457,7 @@ function App() {
           </button>
         </div>
       )}
-      {page !== "cook" && page !== "trending" && !modal && <nav className="bottom-nav" aria-label="Điều hướng chính">
+      {page !== "cook" && !modal && <nav className="bottom-nav" aria-label="Điều hướng chính">
         <button
           className={page === "home" ? "nav-active" : ""}
           onClick={() => setPage("home")}
@@ -2253,6 +2478,13 @@ function App() {
         >
           <BookOpen size={19} />
           <span>Khám phá</span>
+        </button>
+        <button
+          className={page === "trending" ? "nav-active" : ""}
+          onClick={() => setPage("trending")}
+        >
+          <Video size={19} />
+          <span>Video</span>
         </button>
         <button
           className={page === "favorites" ? "nav-active" : ""}
@@ -2481,7 +2713,7 @@ function App() {
           </section>
         </div>
       )}
-      {showInstallHelp && <div className="modal-backdrop install-backdrop" role="dialog" aria-modal="true" aria-labelledby="install-title"><section className="install-card"><button className="close-install" onClick={() => setShowInstallHelp(false)} aria-label="Đóng"><X size={18}/></button><div className="brandicon"><Leaf size={20}/></div><h2 id="install-title">Cài Fresh lên màn hình chính</h2>{!window.isSecureContext ? <><p>Để cài như ứng dụng, trang cần HTTPS. Hãy mở lại đường dẫn QR sau khi triển khai Fresh lên Vercel.</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></> : isIOSDevice() ? <><p>Mở trang này bằng Safari, chạm <b>Chia sẻ</b>, chọn <b>Thêm vào Màn hình chính</b>, rồi chạm <b>Thêm</b>.</p><p>iPhone/iPad yêu cầu bạn xác nhận các bước này; website không thể tự thêm biểu tượng thay bạn.</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></> : installPrompt ? <><p>Chạm bên dưới để mở hộp thoại cài đặt của trình duyệt. Xác nhận thêm một lần trong hộp thoại để Fresh xuất hiện trên màn hình chính.</p><button className="qr-link install-action" onClick={async () => { const prompt = installPrompt; await prompt.prompt(); const choice = await prompt.userChoice; setInstallPrompt(null); if (choice.outcome === "accepted") setShowInstallHelp(false); }}><Download size={17}/> Cài Fresh</button></> : !installCheckComplete ? <><p>Đang kiểm tra xem trình duyệt có thể cài Fresh trực tiếp không…</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></> : <><p>Nếu trình duyệt hỗ trợ cài PWA, lựa chọn cài đặt sẽ xuất hiện trong menu trình duyệt.</p><p><b>Android/Chrome:</b> mở menu ⋮ rồi chọn <b>Cài đặt ứng dụng</b> hoặc <b>Thêm vào màn hình chính</b>.</p><p><b>iPhone/iPad:</b> dùng Safari, chạm <b>Chia sẻ → Thêm vào Màn hình chính → Thêm</b>.</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></>}</section></div>}
+      {showInstallHelp && <div className="modal-backdrop install-backdrop" role="dialog" aria-modal="true" aria-labelledby="install-title"><section className="install-card"><button className="close-install" onClick={() => setShowInstallHelp(false)} aria-label="Đóng"><X size={18}/></button><img className="brand-logo-image" src="/icon.svg" alt=""/><h2 id="install-title">Cài Nấu Đại Đi lên màn hình chính</h2>{!window.isSecureContext ? <><p>Để cài như ứng dụng, trang cần HTTPS. Hãy mở lại đường dẫn QR sau khi triển khai Nấu Đại Đi lên Vercel.</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></> : isIOSDevice() ? <><p>Mở trang này bằng Safari, chạm <b>Chia sẻ</b>, chọn <b>Thêm vào Màn hình chính</b>, rồi chạm <b>Thêm</b>.</p><p>iPhone/iPad yêu cầu bạn xác nhận các bước này; website không thể tự thêm biểu tượng thay bạn.</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></> : installPrompt ? <><p>Chạm bên dưới để mở hộp thoại cài đặt của trình duyệt. Xác nhận thêm một lần trong hộp thoại để Nấu Đại Đi xuất hiện trên màn hình chính.</p><button className="qr-link install-action" onClick={async () => { const prompt = installPrompt; await prompt.prompt(); const choice = await prompt.userChoice; setInstallPrompt(null); if (choice.outcome === "accepted") setShowInstallHelp(false); }}><Download size={17}/> Cài Nấu Đại Đi</button></> : !installCheckComplete ? <><p>Đang kiểm tra xem trình duyệt có thể cài Nấu Đại Đi trực tiếp không…</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></> : <><p>Nếu trình duyệt hỗ trợ cài PWA, lựa chọn cài đặt sẽ xuất hiện trong menu trình duyệt.</p><p><b>Android/Chrome:</b> mở menu ⋮ rồi chọn <b>Cài đặt ứng dụng</b> hoặc <b>Thêm vào màn hình chính</b>.</p><p><b>iPhone/iPad:</b> dùng Safari, chạm <b>Chia sẻ → Thêm vào Màn hình chính → Thêm</b>.</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></>}</section></div>}
     </div>
   );
 }
@@ -2489,7 +2721,7 @@ function App() {
 function QrPage() {
   const url = `${window.location.origin}/?install=1`;
   const qr = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=${encodeURIComponent(url)}`;
-  return <main className="qr-page"><a className="qr-back" href="/">← Quay lại ứng dụng</a><div className="qr-card"><div className="brand"><div className="brandicon"><Leaf size={18}/></div><span>fresh<span className="branddot">.</span></span></div><h1>Quét để mở và cài Fresh</h1><p>Quét mã sẽ mở trang hướng dẫn cài phù hợp với điện thoại. Android có thể mở hộp thoại cài đặt; iPhone/iPad cần xác nhận qua menu Chia sẻ.</p><img className="qr-image" src={qr} alt={`Mã QR mở trang cài Fresh ${url}`}/><code>{url}</code><small>Để cài ứng dụng, hãy tạo mã QR sau khi triển khai app trên HTTPS (ví dụ tên miền Vercel).</small></div></main>;
+  return <main className="qr-page"><a className="qr-back" href="/">← Quay lại ứng dụng</a><div className="qr-card"><div className="brand"><img className="brand-logo-image" src="/icon.svg" alt=""/><span className="brand-wordmark"><span>Nấu</span><span>Đại</span><span>Đi</span></span></div><h1>Quét để mở và cài Nấu Đại Đi</h1><p>Quét mã sẽ mở trang hướng dẫn cài phù hợp với điện thoại. Android có thể mở hộp thoại cài đặt; iPhone/iPad cần xác nhận qua menu Chia sẻ.</p><img className="qr-image" src={qr} alt={`Mã QR mở trang cài Nấu Đại Đi ${url}`}/><code>{url}</code><small>Để cài ứng dụng, hãy tạo mã QR sau khi triển khai app trên HTTPS (ví dụ tên miền Vercel).</small></div></main>;
 }
 function FlexibleSuggestionPanel({ recipes, onOpen, compact = false }: { recipes: Recipe[]; onOpen: (recipe: Recipe) => void; compact?: boolean }) {
   return <section className={`flexible-suggestions${compact ? " flexible-suggestions-compact" : ""}`} aria-labelledby={compact ? "home-flexible-title" : "flexible-title"}>
