@@ -1,0 +1,54 @@
+name: Update Món Ngon Mỗi Ngày recipes
+
+on:
+  schedule:
+    # GitHub Actions cron is UTC: Sunday 08:00 UTC = Sunday 15:00 Vietnam time.
+    - cron: "0 8 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-mnnm-recipes
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - name: Install scraper dependencies
+        run: python -m pip install requests beautifulsoup4
+      - name: Refresh sitemap and fetch new recipes
+        run: python scripts/scrape_mnnm_recipes.py --output-dir data-archive/monngonmoingay_source_2026-11-14 --refresh-links --delay-seconds 0.5
+      - name: Refresh Knorr cooking tips
+        run: python scripts/scrape_knorr_tips.py --delay-seconds 0.5
+      - name: Rebuild MNMN app catalog
+        run: npm run build:mnnm-app-data
+      - name: Build shared cooking tips feed
+        run: npm run build:cooking-tips
+      - name: Refresh complete source ingredient catalog
+        run: node scripts/build-source-ingredient-catalog.mjs
+      - name: Validate app data
+        run: npm run build
+      - name: Commit updated recipe data
+        run: |
+          git add data-archive/monngonmoingay_source_2026-11-14 data-archive/knorr_tips_source public/data/mnnm public/data/knorr/recipes.json public/data/cooking-tips.json src/data/source-ingredients.json
+          if git diff --cached --quiet; then
+            echo "Recipe data unchanged; no commit needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: update Món Ngon Mỗi Ngày recipes"
+          git push

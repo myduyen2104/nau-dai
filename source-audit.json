@@ -13,7 +13,10 @@
       "license": "unknown (GitHub API reports no license; no LICENSE file found)",
       "redistributionAllowed": "unknown",
       "attributionRequired": "unknown",
-      "totalRecords": { "ingredients": 8112, "dishRecords": 10741 },
+      "totalRecords": {
+        "ingredients": 8112,
+        "dishRecords": 10741
+      },
       "uniqueRecipes": null,
       "uniqueIngredients": 7577,
       "hasInstructions": false,
@@ -123,6 +126,31 @@
       "dataQuality": "The dataset contains 3 Vietnam catalog entries with name, total time, difficulty, normalized ingredient names and recipe URL. It does not include ingredient quantities or method text. Rows are catalog/ingredients-only, not full recipes.",
       "importDecision": "approved_for_import",
       "notes": "Only the 3 country_code=VN rows are imported. Preserve source ID, source URL, CC BY 4.0 license and attribution in app data and UI. The publisher says the corpus covers up to three dishes per country, so it is not a comprehensive Vietnamese cuisine set."
+    },
+    {
+      "sourceName": "Món Ngon Mỗi Ngày (MNMN)",
+      "sourceUrl": "https://monngonmoingay.com/tim-kiem-mon-ngon/",
+      "datasetUrl": [
+        "https://monngonmoingay.com/robots.txt",
+        "https://monngonmoingay.com/sitemap_index.xml",
+        "https://monngonmoingay.com/dieu-khoan-su-dung/"
+      ],
+      "accessStatus": "13 public recipe sitemaps yielded 2,523 item-detail URLs; all 2,523 fetched successfully with zero request failures or duplicate source URLs; user confirmed permission on 2026-11-14",
+      "license": "No blanket reuse license is published. User confirmed separate permission for this project in chat on 2026-11-14; the permission document is not stored in the repository.",
+      "redistributionAllowed": "user_confirmed_for_current_project",
+      "permissionScope": "User confirmed permission to use the full recipe collection for this project in chat on 2026-11-14; attribution and image-derivative terms were not separately documented.",
+      "attributionRequired": "not confirmed; follow the user's permission terms when recorded",
+      "totalRecords": 2523,
+      "discoveredRecipeUrls": 2523,
+      "uniqueRecipes": 2475,
+      "uniqueIngredients": 13589,
+      "hasInstructions": "2,517 records have substantive instruction content; six sitemap pages have no usable instruction text and remain flagged",
+      "hasQuantities": "2,518 records have muong and gram ingredient views; original quantity strings and linked seasoning products are preserved",
+      "dataQuality": "Exported all 2,523 sitemap item URLs with zero request failures and no duplicate source URLs. There are 2,475 distinct titles across 45 duplicate-title groups. Five records lack ingredient views, six lack usable instruction content, and four lack parseable Recipe JSON-LD; all remain in the export with warnings.",
+      "localExportPath": "data-archive/monngonmoingay_source_2026-11-14/recipes.jsonl",
+      "importDecision": "export_complete_not_app_imported",
+      "reviewedAt": "2026-11-14",
+      "notes": "Published terms say all IP in site content belongs to Ajinomoto Vietnam and the content may not be used, copied or changed without consent (except cases under law). User confirmed permission for this project in chat on 2026-11-14; no document was attached to the repository. The local export keeps source image URLs but does not download image files. See the archive README and quality-report.json for schema, resume command and field coverage."
     }
   ]
 }

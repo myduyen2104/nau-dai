@@ -1,0 +1,14 @@
+{
+  "source": "Knorr Việt Nam",
+  "category_url": "https://www.knorr.com/vn/bai-viet/cach-nau-an-ngon.html",
+  "fetched_at": "2026-11-16",
+  "articles": [
+    {"id":"meo-su-dung-nam","title":"Mẹo chế biến món nấm thơm ngon tự nhiên cho gia đình","url":"https://www.knorr.com/vn/bai-viet/cach-nau-an-ngon/meo-su-dung-nam.html","image_url":null,"tips":[{"title":"Mẹo chế biến món nấm thơm ngon tự nhiên cho gia đình","text":""}]},
+    {"id":"meo-thai-thit-nhanh","title":"Mẹo thái thịt nhanh và đẹp cho các món ăn gia đình","url":"https://www.knorr.com/vn/bai-viet/cach-nau-an-ngon/meo-thai-thit-nhanh.html","image_url":null,"tips":[{"title":"Mẹo thái thịt nhanh và đẹp cho các món ăn gia đình","text":""}]},
+    {"id":"su-dung-ruou-trong-nau-an","title":"Mẹo sử dụng rượu trong nấu ăn làm tăng hương vị","url":"https://www.knorr.com/vn/bai-viet/cach-nau-an-ngon/su-dung-ruou-trong-nau-an.html","image_url":null,"tips":[{"title":"Mẹo sử dụng rượu trong nấu ăn làm tăng hương vị","text":""}]},
+    {"id":"meo-chua-cay-nhanh-chong-hieu-qua","title":"Mẹo chữa cay nhanh chóng và hiệu quả cho cả nhà","url":"https://www.knorr.com/vn/bai-viet/cach-nau-an-ngon/meo-chua-cay-nhanh-chong-hieu-qua.html","image_url":null,"tips":[{"title":"Thêm vị chua","text":"Axit trong chanh, khế, cam, dứa, giấm hoặc sốt cà chua giúp giảm độ cay."},{"title":"Thêm vị ngọt","text":"Thêm một chút đường hoặc mật ong để dịu vị cay; cho từng ít một để món không bị quá ngọt."},{"title":"Thêm rau củ","text":"Cà rốt, khoai tây hoặc đậu cô ve cắt nhỏ có thể hút bớt vị cay; vớt rau củ ra trước khi dùng."}]},
+    {"id":"bi-quyet-ham-thuc-pham-nhanh","title":"Bí quyết hầm thực phẩm đơn giản và nhanh chóng","url":"https://www.knorr.com/vn/bai-viet/cach-nau-an-ngon/bi-quyet-ham-thuc-pham-nhanh.html","image_url":null,"tips":[{"title":"Bí quyết hầm thực phẩm đơn giản và nhanh chóng","text":""}]},
+    {"id":"meo-nuong-thit-khong-bi-kho","title":"Mẹo nướng thịt không bị khô, an toàn cho sức khỏe","url":"https://www.knorr.com/vn/bai-viet/cach-nau-an-ngon/meo-nuong-thit-khong-bi-kho.html","image_url":null,"tips":[{"title":"Mẹo nướng thịt không bị khô, an toàn cho sức khỏe","text":""}]}
+  ],
+  "failures": []
+}
