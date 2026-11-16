@@ -355,6 +355,7 @@ function App() {
   const [videoUrlDraft, setVideoUrlDraft] = useState("");
   const [videoNoteDraft, setVideoNoteDraft] = useState("");
   const [videoFormError, setVideoFormError] = useState("");
+  const [activeTrendingVideoId, setActiveTrendingVideoId] = useState<string | null>(null);
   const [libraryQuery, setLibraryQuery] = useState(() => new URLSearchParams(window.location.search).get("q") ?? "");
   const [libraryCategory, setLibraryCategory] = useState("Tất cả");
   const [libraryStatus, setLibraryStatus] = useState("Tất cả");
@@ -750,6 +751,21 @@ function App() {
     return () => { active = false; };
   }, []);
   useEffect(() => { if (canPersist && !persist("fridge-saved-videos", savedVideos)) setStorageWarning("Không thể lưu danh sách video trên thiết bị."); }, [savedVideos, canPersist]);
+  useEffect(() => {
+    if (page !== "trending") {
+      setActiveTrendingVideoId(null);
+      return;
+    }
+    if (!activeTrendingVideoId || typeof IntersectionObserver === "undefined") return;
+    const card = [...document.querySelectorAll<HTMLElement>("[data-trend-video-id]")]
+      .find((element) => element.dataset.trendVideoId === activeTrendingVideoId);
+    if (!card) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || entry.intersectionRatio < 0.25) setActiveTrendingVideoId(null);
+    }, { threshold: [0, 0.25] });
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, [page, activeTrendingVideoId]);
   useEffect(() => { if (canPersist && !persist("fresh-shopping-list", shoppingItems)) setStorageWarning("Không thể lưu danh sách đi chợ trên thiết bị."); }, [shoppingItems, canPersist]);
   useEffect(() => {
     if (!modal) return;
@@ -1122,6 +1138,15 @@ function App() {
     if (savedVideos.some((video) => video.url === parsed.url)) { setVideoFormError("Link này đã có trong danh sách."); return; }
     setSavedVideos((items) => [{ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, platform: parsed.platform, url: parsed.url, note: videoNoteDraft.trim(), savedAt: new Date().toISOString() }, ...items]);
     setVideoUrlDraft(""); setVideoNoteDraft(""); setVideoFormError("");
+  }
+  function toggleSavedTrendingVideo(video: TrendingVideo) {
+    const url = video.videoUrl;
+    const existing = savedVideos.some((saved) => saved.url === url);
+    if (existing) {
+      setSavedVideos((items) => items.filter((saved) => saved.url !== url));
+      return;
+    }
+    setSavedVideos((items) => [{ id: video.id, platform: "youtube", url, note: video.title, savedAt: new Date().toISOString() }, ...items]);
   }
   function toggleFavorite(id: string) {
     setFavorites((f) =>
@@ -1917,15 +1942,20 @@ function App() {
           <>
             <section className="trending-intro">
               <div className="recipe-intro-icon"><BookOpen size={21}/></div>
-              <div><b>{importedTrending.videos.length ? "Video món ăn từ YouTube" : "Video muốn thử"}</b><p>{importedTrending.updatedAt ? `Danh sách được đồng bộ ${new Date(importedTrending.updatedAt).toLocaleString("vi-VN")}.` : "Hiện chưa có video xu hướng được đồng bộ. Bạn có thể lưu đường dẫn món muốn nấu."}</p></div>
+              <div><b>{importedTrending.videos.length ? "Video hướng dẫn nấu ăn" : "Video muốn thử"}</b><p>{importedTrending.videos.length ? `${importedTrending.videos.length} video · chạm để xem, vuốt lên để xem tiếp${importedTrending.updatedAt ? ` · cập nhật ${new Date(importedTrending.updatedAt).toLocaleDateString("vi-VN")}` : ""}.` : "Hiện chưa có video hướng dẫn. Bạn có thể lưu đường dẫn món muốn nấu."}</p></div>
             </section>
             {importedTrending.videos.length > 0 && <>
-              <p className="trend-data-note">Metadata lấy từ YouTube Data API tại lần đồng bộ gần nhất; lượt xem không thể hiện mức tăng trưởng.</p>
-              <div className="trending-list">{importedTrending.videos.map((video) => {
+              <div className="trending-list trend-feed" aria-label="Luồng video hướng dẫn nấu ăn">{importedTrending.videos.map((video, index) => {
                 const linkedRecipe = video.recipeId ? recipes.find((recipe) => recipe.id === video.recipeId) : undefined;
-                return <article className="trend-card" key={video.id}>
-                  <a className="trend-thumb" href={video.videoUrl} target="_blank" rel="noreferrer"><img src={video.thumbnailUrl} alt="" loading="lazy" onError={(event) => { event.currentTarget.style.visibility = "hidden"; }}/><span><ExternalLink size={16}/></span></a>
-                  <div className="trend-card-body"><small>{video.creatorName || "YouTube"} · {video.publishedAt ? new Date(video.publishedAt).toLocaleDateString("vi-VN") : "Ngày đăng không có"}</small><h3>{video.title}</h3><p>{video.viewCount !== undefined ? `${video.viewCount.toLocaleString("vi-VN")} lượt xem tại lần đồng bộ` : "Chưa có số liệu lượt xem"}</p>{linkedRecipe ? <button className="text-button" onClick={() => openRecipe(linkedRecipe)}>Xem cách nấu: {linkedRecipe.name}</button> : <a className="trend-original" href={video.videoUrl} target="_blank" rel="noreferrer">Xem video gốc <ExternalLink size={14}/></a>}</div>
+                const saved = savedVideos.some((item) => item.url === video.videoUrl);
+                const playing = activeTrendingVideoId === video.id;
+                return <article className="trend-card trend-feed-card" data-trend-video-id={video.id} key={video.id}>
+                  <div className="trend-player">
+                    {playing
+                      ? <iframe src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.id)}?autoplay=1&playsinline=1&rel=0`} title={`Video hướng dẫn nấu ăn: ${video.title}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
+                      : <button className="trend-player-poster" onClick={() => setActiveTrendingVideoId(video.id)} aria-label={`Phát video: ${video.title}`}><img src={video.thumbnailUrl} alt="" loading={index < 2 ? "eager" : "lazy"} onError={(event) => { event.currentTarget.style.visibility = "hidden"; }}/><span className="trend-play-button"><Play size={25} fill="currentColor"/></span><small>Chạm để xem</small></button>}
+                  </div>
+                  <div className="trend-card-body"><div className="trend-card-meta"><small>{video.creatorName || "YouTube"} · {video.publishedAt ? new Date(video.publishedAt).toLocaleDateString("vi-VN") : "Ngày đăng không có"}</small><span>{index + 1} / {importedTrending.videos.length}</span></div><h3>{video.title}</h3><p>{video.viewCount !== undefined ? `${video.viewCount.toLocaleString("vi-VN")} lượt xem` : "Video hướng dẫn nấu ăn"}</p><div className="trend-card-actions"><button className={`trend-save-button${saved ? " is-saved" : ""}`} onClick={() => toggleSavedTrendingVideo(video)} aria-pressed={saved}><Bookmark size={16} fill={saved ? "currentColor" : "none"}/>{saved ? "Đã lưu" : "Lưu video"}</button>{linkedRecipe && <button className="text-button" onClick={() => openRecipe(linkedRecipe)}>Mở công thức: {linkedRecipe.name}</button>}<a className="trend-original" href={video.videoUrl} target="_blank" rel="noreferrer" aria-label="Mở video trên YouTube"><ExternalLink size={15}/></a></div></div>
                 </article>;
               })}</div>
             </>}

@@ -2367,3 +2367,32 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .app > main:not(.cook-mode-main) { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
+
+/* Vertical, snap-scrolling recipe video feed. Players mount only after a tap. */
+.trend-feed { width: min(100%, 560px); max-height: 76svh; display: grid; grid-template-columns: 1fr; gap: 12px; margin: 0 auto 20px; overflow-y: auto; overscroll-behavior-y: contain; scroll-snap-type: y mandatory; scrollbar-color: #cbd5c7 transparent; }
+.trend-feed-card { min-height: 70svh; display: flex; flex-direction: column; gap: 0; padding: 10px; border: 1px solid #d8dfd3; border-radius: 20px; scroll-snap-align: start; scroll-snap-stop: always; background: #fffdf7; }
+.trend-player { position: relative; width: 100%; height: min(48svh, 500px); min-height: 230px; overflow: hidden; flex: 0 0 auto; border-radius: 14px; background: #111713; }
+.trend-player iframe, .trend-player-poster { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.trend-player iframe { display: block; }
+.trend-player-poster { display: grid; place-items: center; overflow: hidden; padding: 0; color: white; background: #111713; cursor: pointer; }
+.trend-player-poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.trend-player-poster::after { position: absolute; inset: 0; content: ""; background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,.58)); }
+.trend-play-button { z-index: 1; width: 66px; height: 66px; display: grid; place-items: center; padding-left: 4px; border: 1px solid rgba(255,255,255,.8); border-radius: 50%; background: rgba(0,0,0,.45); }
+.trend-player-poster > small { position: absolute; z-index: 1; right: 14px; bottom: 12px; color: white; font-size: 11px; }
+.trend-card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; color: #617064; }
+.trend-card-meta small, .trend-card-meta span { font-size: 10px; }
+.trend-card-meta span { flex: 0 0 auto; }
+.trend-card-body h3 { margin: 7px 0; font-size: 17px; line-height: 1.25; }
+.trend-card-body > p { margin: 5px 0 9px; }
+.trend-card-actions { display: flex; align-items: center; gap: 12px; }
+.trend-save-button { min-height: 38px; display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; border: 1px solid #cbd8c9; border-radius: 999px; color: #285a3b; background: #f4f8f1; font-size: 12px; font-weight: 750; }
+.trend-save-button.is-saved { border-color: #006738; color: white; background: #006738; }
+.trend-card-actions .trend-original { width: 36px; height: 36px; display: grid; place-items: center; margin-left: auto; border-radius: 50%; background: #f0f2eb; }
+@media (max-width: 699px) {
+  .trend-feed { width: 100%; max-height: calc(100svh - 370px); gap: 10px; }
+  .trend-feed-card { min-height: calc(100svh - 370px); padding: 8px; border-radius: 15px; }
+  .trend-player { height: min(36svh, 340px); min-height: 190px; border-radius: 11px; }
+  .trend-play-button { width: 56px; height: 56px; }
+  .trend-card-meta { margin-top: 9px; }
+  .trend-card-body h3 { font-size: 16px; }
+}
