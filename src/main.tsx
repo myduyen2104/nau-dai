@@ -444,6 +444,7 @@ function App() {
   }, [page, stock.length]);
   const recipeDetailScrollRef = useRef<HTMLDivElement | null>(null);
   const mainScrollRef = useRef<HTMLElement | null>(null);
+  const trendingReturnPageRef = useRef<Page>(page === "trending" ? "home" : page);
   const restoredCookSessionRef = useRef(Boolean(initialCookingSession.recipe));
   const voiceRecognitionRef = useRef<VoiceRecognition | null>(null);
   const cookingStepRef = useRef(cookingStep);
@@ -491,6 +492,7 @@ function App() {
     return () => window.clearInterval(interval);
   }, []);
   useEffect(() => { mainScrollRef.current?.scrollTo({ top: 0 }); }, [page]);
+  useEffect(() => { if (page !== "trending") trendingReturnPageRef.current = page; }, [page]);
   useEffect(() => {
     if (modal) recipeDetailScrollRef.current?.scrollTo({ top: 0 });
   }, [modal?.id]);
@@ -1480,11 +1482,15 @@ function App() {
   const cookTimerLabel = cookTimerSeconds === null ? "--:--" : `${String(Math.floor(cookTimerSeconds / 60)).padStart(2, "0")}:${String(cookTimerSeconds % 60).padStart(2, "0")}`;
   return (
     <div className={`app app-page-${page}`}>
-      <header className={`topbar${page === "cook" ? " cook-topbar" : ""}`}>
+      <header className={`topbar${page === "cook" ? " cook-topbar" : page === "trending" ? " video-topbar" : ""}`}>
         {page === "cook" ? <>
           <button className="cook-close" onClick={returnToRecipeFromCooking} aria-label="Quay lại chi tiết món ăn"><ArrowLeft size={20}/></button>
           <div className="cook-header-title"><small>{cookingRecipe?.name ?? "Đang nấu"}</small><strong>Đang nấu · Bước {cookingRecipe ? cookingStep + 1 : 0}/{cookingRecipe?.steps.length ?? 0}</strong></div>
           <button className={`cook-handsfree${cookVoiceListening ? " is-listening" : ""}`} onClick={toggleCookVoice} aria-pressed={cookVoiceListening} aria-label={cookVoiceListening ? "Đang nghe" : "Rảnh tay"}><Mic size={16}/>{cookVoiceListening ? "Đang nghe" : "Rảnh tay"}</button>
+        </> : page === "trending" ? <>
+          <button className="video-back" onClick={() => setPage(trendingReturnPageRef.current)} aria-label="Quay lại"><ArrowLeft size={20}/></button>
+          <span className="video-topbar-title">Video hướng dẫn nấu ăn</span>
+          <span className="video-topbar-count">{importedTrending.videos.length} video</span>
         </> : <>
           <div className="brand"><div className="brandicon"><Leaf size={18}/></div><span>fresh<span className="branddot">.</span></span></div>
           <div className="topbar-actions">
@@ -1955,7 +1961,8 @@ function App() {
                       ? <iframe src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.id)}?autoplay=1&playsinline=1&rel=0`} title={`Video hướng dẫn nấu ăn: ${video.title}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
                       : <button className="trend-player-poster" onClick={() => setActiveTrendingVideoId(video.id)} aria-label={`Phát video: ${video.title}`}><img src={video.thumbnailUrl} alt="" loading={index < 2 ? "eager" : "lazy"} onError={(event) => { event.currentTarget.style.visibility = "hidden"; }}/><span className="trend-play-button"><Play size={25} fill="currentColor"/></span><small>Chạm để xem</small></button>}
                   </div>
-                  <div className="trend-card-body"><div className="trend-card-meta"><small>{video.creatorName || "YouTube"} · {video.publishedAt ? new Date(video.publishedAt).toLocaleDateString("vi-VN") : "Ngày đăng không có"}</small><span>{index + 1} / {importedTrending.videos.length}</span></div><h3>{video.title}</h3><p>{video.viewCount !== undefined ? `${video.viewCount.toLocaleString("vi-VN")} lượt xem` : "Video hướng dẫn nấu ăn"}</p><div className="trend-card-actions"><button className={`trend-save-button${saved ? " is-saved" : ""}`} onClick={() => toggleSavedTrendingVideo(video)} aria-pressed={saved}><Bookmark size={16} fill={saved ? "currentColor" : "none"}/>{saved ? "Đã lưu" : "Lưu video"}</button>{linkedRecipe && <button className="text-button" onClick={() => openRecipe(linkedRecipe)}>Mở công thức: {linkedRecipe.name}</button>}<a className="trend-original" href={video.videoUrl} target="_blank" rel="noreferrer" aria-label="Mở video trên YouTube"><ExternalLink size={15}/></a></div></div>
+                  <div className="trend-card-body"><div className="trend-card-meta"><small>{video.creatorName || "YouTube"} · {video.publishedAt ? new Date(video.publishedAt).toLocaleDateString("vi-VN") : "Ngày đăng không có"}</small><span>{index + 1} / {importedTrending.videos.length}</span></div><h3>{video.title}</h3><p>{video.viewCount !== undefined ? `${video.viewCount.toLocaleString("vi-VN")} lượt xem` : "Video hướng dẫn nấu ăn"}</p>{linkedRecipe && <button className="trend-recipe-link" onClick={() => openRecipe(linkedRecipe)}>Mở công thức: {linkedRecipe.name}</button>}</div>
+                  <div className="trend-card-actions"><button className={`trend-save-button${saved ? " is-saved" : ""}`} onClick={() => toggleSavedTrendingVideo(video)} aria-pressed={saved}><Bookmark size={16} fill={saved ? "currentColor" : "none"}/><span>{saved ? "Đã lưu" : "Lưu"}</span></button><a className="trend-original" href={video.videoUrl} target="_blank" rel="noreferrer" aria-label="Mở video trên YouTube"><ExternalLink size={18}/></a></div>
                 </article>;
               })}</div>
             </>}
@@ -2225,7 +2232,7 @@ function App() {
           </button>
         </div>
       )}
-      {page !== "cook" && !modal && <nav className="bottom-nav" aria-label="Điều hướng chính">
+      {page !== "cook" && page !== "trending" && !modal && <nav className="bottom-nav" aria-label="Điều hướng chính">
         <button
           className={page === "home" ? "nav-active" : ""}
           onClick={() => setPage("home")}
@@ -2241,7 +2248,7 @@ function App() {
           <span>Tủ lạnh</span>
         </button>
         <button
-          className={page === "explore" || page === "trending" ? "nav-active" : ""}
+          className={page === "explore" ? "nav-active" : ""}
           onClick={() => setPage("explore")}
         >
           <BookOpen size={19} />

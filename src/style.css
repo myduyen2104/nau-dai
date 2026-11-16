@@ -2396,3 +2396,31 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .trend-card-meta { margin-top: 9px; }
   .trend-card-body h3 { font-size: 16px; }
 }
+
+/* Fullscreen portrait viewing mode for cooking videos. */
+.app-page-trending { position: fixed; z-index: 60; inset: 0; width: 100%; height: 100dvh; min-height: 0; max-width: none; margin: 0; padding: 0; overflow: hidden; background: #000; }
+.app-page-trending > .video-topbar { position: absolute; z-index: 5; top: env(safe-area-inset-top); left: 50%; width: min(100%, 480px); height: 58px; padding: 0 13px; transform: translateX(-50%); border: 0; color: #fff; background: linear-gradient(180deg,rgba(0,0,0,.62),transparent); }
+.video-back { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.25); border-radius: 50%; color: #fff; background: rgba(0,0,0,.26); }
+.video-topbar-title { overflow: hidden; margin: 0 auto 0 12px; color: #fff; font-size: 14px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.video-topbar-count { color: rgba(255,255,255,.86); font-size: 11px; }
+.app-page-trending > main { position: absolute; inset: 0; width: 100%; height: 100dvh; margin: 0; padding: 0; overflow: hidden; }
+.app-page-trending .greeting, .app-page-trending .storage-alert, .app-page-trending .trending-intro, .app-page-trending .add-video-section { display: none; }
+.app-page-trending .trend-feed { position: absolute; inset: 0; width: 100%; height: 100dvh; max-height: none; display: block; margin: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; scroll-snap-type: y mandatory; scrollbar-width: none; background: #000; }
+.app-page-trending .trend-feed::-webkit-scrollbar { display: none; }
+.app-page-trending .trend-feed-card { position: relative; width: min(100%, 480px); height: 100dvh; min-height: 100dvh; margin: 0 auto; padding: 0; overflow: hidden; border: 0; border-radius: 0; scroll-snap-align: start; scroll-snap-stop: always; background: #000; }
+.app-page-trending .trend-player { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; overflow: hidden; border-radius: 0; background: #000; }
+.app-page-trending .trend-player iframe, .app-page-trending .trend-player-poster { width: 100%; height: 100%; }
+.app-page-trending .trend-player-poster img { object-fit: cover; }
+.app-page-trending .trend-player-poster::after { background: linear-gradient(180deg,rgba(0,0,0,.38) 0%,transparent 25%,transparent 48%,rgba(0,0,0,.78) 100%); }
+.app-page-trending .trend-player-poster > small { display: none; }
+.app-page-trending .trend-card-body { position: absolute; z-index: 2; right: 78px; bottom: calc(86px + env(safe-area-inset-bottom)); left: 16px; padding: 0; color: #fff; text-shadow: 0 1px 5px rgba(0,0,0,.6); }
+.app-page-trending .trend-card-meta { margin: 0 0 8px; color: rgba(255,255,255,.9); }
+.app-page-trending .trend-card-meta small, .app-page-trending .trend-card-meta span { font-size: 11px; }
+.app-page-trending .trend-card-body h3 { margin: 0 0 8px; color: #fff; font: 750 19px/1.28 system-ui,sans-serif; }
+.app-page-trending .trend-card-body > p { margin: 0; color: rgba(255,255,255,.83); font-size: 12px; }
+.app-page-trending .trend-recipe-link { margin-top: 10px; padding: 8px 11px; border: 1px solid rgba(255,255,255,.45); border-radius: 999px; color: #fff; background: rgba(0,0,0,.3); font-size: 11px; text-align: left; }
+.app-page-trending .trend-card-actions { position: absolute; z-index: 3; right: max(14px,calc((100vw - 480px)/2 + 14px)); bottom: calc(96px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; gap: 17px; }
+.app-page-trending .trend-save-button { width: 48px; min-height: 48px; flex-direction: column; justify-content: center; gap: 3px; padding: 5px 2px; border: 0; border-radius: 50%; color: #fff; background: rgba(0,0,0,.48); font-size: 9px; text-shadow: 0 1px 4px #000; }
+.app-page-trending .trend-save-button.is-saved { color: #fff; background: #087844; }
+.app-page-trending .trend-card-actions .trend-original { width: 42px; height: 42px; margin: 0; color: #fff; background: rgba(0,0,0,.46); }
+.app-page-trending .bottom-nav { display: none; }
