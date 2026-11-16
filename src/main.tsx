@@ -1102,6 +1102,11 @@ function App() {
   const homeFeatureOptionIndex = homeFeatureOptions.length ? homeFeatureIndex % homeFeatureOptions.length : 0;
   const homeNewestFeatured = Boolean(newestMnnmRecipe && homeFeatureOptionIndex === 0);
   const homeFeaturedRecipe = homeFeatureOptions[homeFeatureOptionIndex] ?? null;
+  const homeFeatureDescription = homeFeaturedRecipe?.description
+    ?.replace(/(?:cùng\s+)?(?:Món Ngon Mỗi Ngày|Knorr Việt Nam|Knorr|MNMN)/gi, "")
+    .replace(/\s+\./g, ".")
+    .replace(/\s{2,}/g, " ")
+    .trim();
   const homeMealCandidates = useMemo(() => {
     const preferred = previewRecommendations.map((item) => recipeById.get(item.recipeId)).filter((recipe): recipe is Recipe => Boolean(recipe));
     const sourceCatalogRecipes = [...(mnnmCatalog ?? []).filter((item) => item.has_instructions).map((item) => mnnmRecipeFor(item)), ...mnnmRecent.filter((item) => item.has_instructions).map((item) => mnnmRecipeFor(item))];
@@ -1767,30 +1772,28 @@ function App() {
               {homeFeatureOptions.length > 1 && <button type="button" className="home-feature-refresh" onClick={() => setHomeFeatureIndex((index) => (index + 1) % homeFeatureOptions.length)} aria-label="Đổi món gợi ý" title="Đổi món gợi ý"><RefreshCw size={15}/>Đổi món</button>}
               <button className="home-feature-save" onClick={() => toggleFavorite(homeFeaturedRecipe.id)} aria-label={favorites.includes(homeFeaturedRecipe.id) ? "Bỏ lưu món" : "Lưu món"} aria-pressed={favorites.includes(homeFeaturedRecipe.id)}><Heart size={19} fill={favorites.includes(homeFeaturedRecipe.id) ? "currentColor" : "none"}/></button>
               <div className="home-feature-copy">
-                <div className="home-feature-meta"><span><Clock size={14}/>{homeFeaturedRecipe.totalTime != null ? `~${homeFeaturedRecipe.totalTime} phút` : "Thời gian chưa rõ"}</span><span>{homeFeaturedRecipe.difficulty}</span><span>{homeFeaturedRecipe.verificationStatus === "verified" ? "Đã xác minh" : "Chưa xác minh độc lập"}</span></div>
+                <div className="home-feature-meta"><span><Clock size={14}/>{homeFeaturedRecipe.totalTime != null ? `~${homeFeaturedRecipe.totalTime} phút` : homeFeaturedRecipe.difficulty}</span></div>
                 <h2>{homeFeaturedRecipe.name}</h2>
-                <p>{homeFeaturedRecipe.description || (homeFeaturedRecipe.dataStatus === "full_recipe" ? "Mở món để xem nguyên liệu và cách chế biến." : "Thông tin món hiện có trong thư viện Nấu Đại Đi.")}</p>
+                <p>{homeFeatureDescription || (homeFeaturedRecipe.dataStatus === "full_recipe" ? "Mở món để xem nguyên liệu và cách chế biến." : "Thông tin món hiện có trong thư viện Nấu Đại Đi.")}</p>
                 <button className="home-feature-cta" onClick={() => openRecipe(homeFeaturedRecipe)}>Xem công thức &amp; cách nấu <ArrowRight size={18}/></button>
               </div>
             </section> : <section className="home-feature-empty"><b>Chưa có công thức nổi bật</b><p>Mở thư viện để chọn món hoặc thêm nguyên liệu vào tủ.</p><button onClick={() => { if (stock.length) setDiscoveryMode("fridge"); setPage(stock.length ? "explore" : "fridge"); }}>{stock.length ? "Tìm món" : "Thêm nguyên liệu"}<ArrowRight size={16}/></button></section>}
             <section className="home-meal-section" aria-labelledby="home-meal-title">
               <div className="home-meal-heading"><div><span className="home-section-kicker">GỢI Ý HÔM NAY</span><h2 id="home-meal-title">{isAfternoonSnackTime ? "Món ăn xế hôm nay" : "Mâm cơm hôm nay"}</h2></div>{homeMealCandidates.length > 1 && <button type="button" onClick={() => setHomeMealIndex((index) => index + 1)}><RefreshCw size={14}/> Đổi gợi ý</button>}</div>
-              <p className="home-meal-intro">{isAfternoonSnackTime ? "Gợi ý món ăn vặt, món nhẹ và món lai rai từ thư viện công thức." : "Chọn từng món hợp với nguyên liệu nhà mình. Mỗi món mở hướng dẫn riêng và cho biết phần nào còn thiếu."}</p>
               {homeMealCandidates.length ? <div className="home-meal-card">
                 <div className="home-meal-list">{homeMealCandidates.map((recipe) => {
                   const image = recipeImageFor(recipe.id);
                   const thumbnail = image?.cardImagePath ?? image?.imagePath ?? recipe.imageUrl;
-                  const recipeSourceLabel = recipe.source.title === "Món Ngon Mỗi Ngày" ? "MNMN" : recipe.source.title === "Knorr Việt Nam" ? "Knorr" : recipe.category;
                   return <article className="home-meal-row" key={recipe.id}>
                     <button className="home-meal-recipe" onClick={() => openRecipe(recipe)}>
                       <span className="home-meal-image">{thumbnail ? <img src={thumbnail} alt={image?.imageType === "ai_illustration" ? `Ảnh minh họa AI cho món ${recipe.name}` : `Ảnh ${recipe.name}`} loading="lazy" decoding="async" onLoad={(event) => preferHigherResolutionImage(event, recipe.imageFallbacks)} onError={(event) => fallbackRecipeSourceImage(event, recipe)}/> : <span>{recipe.emoji}</span>}</span>
-                      <span className="home-meal-copy"><small>{recipeSourceLabel} · {recipe.category}{recipe.totalTime != null ? ` · ${recipe.totalTime} phút` : ""} · {recipe.verificationStatus === "verified" ? "Đã xác minh" : "Nguồn chưa xác minh"}</small><b>{recipe.name}</b></span>
+                      <span className="home-meal-copy"><small>{recipe.category}{recipe.totalTime != null ? ` · ${recipe.totalTime} phút` : ""}</small><b>{recipe.name}</b></span>
                     </button>
                     <button className="home-meal-open" onClick={() => openRecipe(recipe)} aria-label={`Xem ${recipe.name}`}><ChevronRight size={18}/></button>
                   </article>;
                 })}</div>
                 <div className="home-meal-actions"><button className="home-meal-shopping" onClick={() => addMissingRecipesToShopping(homeMealCandidates)}><ShoppingBasket size={16}/> Gom nguyên liệu</button><button className="home-meal-browse" onClick={() => setPage("explore")}>Chọn món khác <ArrowRight size={15}/></button></div>
-              </div> : <div className="home-feature-empty"><b>Chưa có hướng dẫn nấu để ghép mâm</b><p>Khám phá món trong thư viện, hoặc thêm nguyên liệu vào tủ lạnh để tìm cách nấu.</p><button onClick={() => setPage("explore")}>Khám phá món <ArrowRight size={16}/></button></div>}
+              </div> : <div className="home-feature-empty"><b>Chưa có món gợi ý</b><button onClick={() => setPage("explore")}>Khám phá món <ArrowRight size={16}/></button></div>}
             </section>
             <section className="home-pantry-board" aria-label="Nguyên liệu nhà đang có">
               <section className="board-pantry" aria-label="Nguyên liệu nhà đang có">

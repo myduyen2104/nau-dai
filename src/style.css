@@ -2428,3 +2428,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .video-feed-state p { margin: 0; }
 .video-feed-state button { min-height: 38px; margin-top: 12px; padding: 8px 14px; border: 1px solid rgba(255,255,255,.5); border-radius: 999px; color: #fff; background: rgba(0,0,0,.6); font-weight: 700; }
 .video-end-message { display: block; margin-top: 8px; color: rgba(255,255,255,.78); font-size: 11px; }
+@media (max-width: 699px) {
+  .home-section-kicker { font-size: 11px; }
+  .home-meal-heading h2 { font-size: 24px; line-height: 31px; }
+  .home-meal-row { min-height: 90px; }
+  .home-meal-copy small { font-size: 12px; line-height: 16px; }
+  .home-meal-copy b { font-size: 16px; line-height: 22px; }
+  .home-meal-shopping, .home-meal-browse { font-size: 12px; }
+  .home-feature-meta { font-size: 12px; }
+  .home-feature-copy p { font-size: 13px; line-height: 18px; }
+}
