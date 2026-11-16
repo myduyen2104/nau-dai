@@ -187,6 +187,14 @@ test("nguyên liệu hết hạn hoặc đánh dấu hỏng không được tín
   assert.deepEqual(resultFor(invalidExpiry, "egg").matchedIngredients, []);
 });
 
+test("tên tùy chỉnh không thể làm thực phẩm hỏng xuất hiện lại trong gợi ý", () => {
+  const data = input([recipe("egg", ["egg"])], [
+    { id: "egg", fresh: "spoiled" },
+    { id: "custom-trung-ga", name: "Trứng gà", fresh: "fresh" },
+  ]);
+  assert.deepEqual(resultFor(data, "egg").matchedIngredients, []);
+});
+
 test("trạng thái quantity phân biệt đủ, thiếu và chưa xác định lượng", () => {
   const measured = recipe("measured", ["egg"], { ingredients: [{ ingredientId: "egg", quantity: 2, unit: "quả", optional: false }] });
   const enough = resultFor(input([measured], [{ id: "egg", quantity: 3, unit: "quả" }]), "measured");

@@ -13,52 +13,52 @@
       "cuisine": "vietnamese",
       "country": "Vietnam",
       "countryCode": "VN",
-      "dataStatus": "ingredients_only",
-      "verificationStatus": "unverified",
+      "dataStatus": "full_recipe",
+      "verificationStatus": "adapted",
       "totalTimeMinutes": 220,
       "difficulty": "medium",
       "ingredients": [
         {
           "sourceName": "rice flour",
           "ingredientId": "rice-flour",
-          "quantity": null,
-          "unit": null
+          "quantity": 200,
+          "unit": "g"
         },
         {
           "sourceName": "coconut milk",
           "ingredientId": "coconut-milk",
-          "quantity": null,
-          "unit": null
+          "quantity": 200,
+          "unit": "ml"
         },
         {
           "sourceName": "turmeric",
           "ingredientId": "ginger-root",
-          "quantity": null,
-          "unit": null
+          "quantity": 2,
+          "unit": "g"
         },
         {
           "sourceName": "pork belly, sliced",
           "ingredientId": "pork-belly",
-          "quantity": null,
-          "unit": null
+          "quantity": 200,
+          "unit": "g"
         },
         {
           "sourceName": "prawn",
           "ingredientId": "shrimp",
-          "quantity": null,
-          "unit": null
+          "quantity": 150,
+          "unit": "g"
         },
         {
           "sourceName": "bean sprouts",
           "ingredientId": "bean-sprout",
-          "quantity": null,
-          "unit": null
+          "quantity": 150,
+          "unit": "g"
         },
         {
           "sourceName": "spring onion",
           "ingredientId": "scallion",
-          "quantity": null,
-          "unit": null
+          "quantity": 1,
+          "unit": "nắm"
         },
         {
           "sourceName": "lettuce",
@@ -101,9 +101,69 @@
           "ingredientId": null,
           "quantity": null,
           "unit": null
+        },
+        {
+          "sourceName": "bột chiên giòn",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "nước lọc",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "muối",
+          "ingredientId": "salt",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "hành tây",
+          "ingredientId": "onion",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "dầu ăn",
+          "ingredientId": "oil",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "muối",
+          "ingredientId": "salt",
+          "quantity": 2,
+          "unit": "g"
+        },
+        {
+          "sourceName": "nước lọc",
+          "ingredientId": null,
+          "quantity": 300,
+          "unit": "ml"
         }
       ],
-      "instructions": [],
+      "instructions": [
+        "Trộn bột gạo, bột chiên giòn, nghệ và muối. Rót từ từ nước cốt dừa cùng nước lọc vào, khuấy đến khi bột mịn; để bột nghỉ khoảng 30–45 phút rồi trộn hành lá đã cắt nhỏ vào.",
+        "Thái thịt ba chỉ mỏng. Sơ chế tôm, bỏ đầu, vỏ và chỉ lưng. Rửa giá, hành tây, hành lá và rau ăn kèm rồi để ráo; thái hành tây mỏng.",
+        "Làm nóng chảo, láng ít dầu. Múc bột vào và nghiêng chảo cho lớp bột phủ mỏng; xếp tôm, thịt, hành tây và giá lên một nửa mặt bánh. Đậy nắp, chiên đến khi nhân chín và viền bánh vàng giòn.",
+        "Dùng xẻng gập phần bánh không nhân phủ lên phần nhân rồi gắp ra đĩa. Lặp lại với phần bột và nhân còn lại.",
+        "Pha nước mắm với đường, nước cốt chanh và nước lọc cho tan; thêm tỏi, ớt băm theo khẩu vị. Dọn bánh nóng cùng xà lách, rau thơm và nước chấm."
+      ],
+      "addedIngredients": [
+        "dầu ăn",
+        "muối",
+        "nước lọc",
+        "hành tây",
+        "bột chiên giòn"
+      ],
+      "instructionReference": {
+        "title": "Cách làm bánh xèo giòn rụm, vàng ươm như nhà hàng · VnExpress Cooking",
+        "url": "https://vnexpress.net/doi-song-cooking-cach-lam-banh-xeo-gion-rum-vang-uom-nhu-nha-hang-4969347.html",
+        "matchType": "similar"
+      },
       "source": {
         "name": "Copper — traditional dishes of the world",
         "datasetUrl": "https://copperapp.app/data/copper-dishes.json",
@@ -111,7 +171,8 @@
         "license": "CC-BY-4.0",
         "attribution": "Copper — https://copperapp.app/study/what-the-world-cooks.html",
         "attributionUrl": "https://copperapp.app/study/what-the-world-cooks.html"
-      }
+      },
+      "servings": 4
     },
     {
       "id": "copper:vn-bun-cha",
@@ -120,22 +181,22 @@
       "cuisine": "vietnamese",
       "country": "Vietnam",
       "countryCode": "VN",
-      "dataStatus": "ingredients_only",
-      "verificationStatus": "unverified",
+      "dataStatus": "full_recipe",
+      "verificationStatus": "adapted",
       "totalTimeMinutes": 75,
       "difficulty": "medium",
       "ingredients": [
         {
           "sourceName": "pork mince",
           "ingredientId": "ground-pork",
-          "quantity": null,
-          "unit": null
+          "quantity": 500,
+          "unit": "g"
         },
         {
           "sourceName": "pork belly",
           "ingredientId": "pork-belly",
-          "quantity": null,
-          "unit": null
+          "quantity": 500,
+          "unit": "g"
         },
         {
           "sourceName": "rice vermicelli",
@@ -196,9 +257,64 @@
           "ingredientId": null,
           "quantity": null,
           "unit": null
+        },
+        {
+          "sourceName": "đu đủ xanh",
+          "ingredientId": "papaya",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "hành khô",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "nước hàng",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "tiêu xay",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "nước lọc",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "mỡ lợn",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
         }
       ],
-      "instructions": [],
+      "instructions": [
+        "Thái thịt ba chỉ thành lát mỏng; băm hoặc xay thô thịt vai. Băm hành khô, đập dập hành lá; rửa sạch và để ráo rau ăn kèm. Gọt đu đủ xanh và cà rốt, thái lát mỏng.",
+        "Pha nước mắm, đường, giấm và nước ấm theo tỷ lệ 1:1:1:5. Khuấy tan, nếm vị chua mặn ngọt; thêm tỏi, ớt, tiêu và đu đủ cùng cà rốt để làm dưa góp, nước chấm.",
+        "Ướp riêng thịt ba chỉ và thịt vai với hành, nước mắm, nước hàng, đường và tiêu; để lạnh ít nhất 1 giờ. Nặn thịt vai thành viên dẹt, phần thịt ba chỉ để nguyên lát.",
+        "Xếp thịt lên vỉ đã phết một lớp mỡ mỏng, nướng trên than hồng vừa. Lật trở đều đến khi chả chín và xém thơm nhưng không cháy.",
+        "Dọn bún tươi và rau sống cùng chả vừa nướng. Cho dưa góp vào bát nước chấm rồi dùng chả chấm kèm bún và rau."
+      ],
+      "addedIngredients": [
+        "đu đủ xanh",
+        "hành khô",
+        "nước hàng",
+        "tiêu xay",
+        "mỡ lợn",
+        "nước lọc"
+      ],
+      "instructionReference": {
+        "title": "Cách làm bún chả Hà Nội hương vị xưa · VnExpress Cooking",
+        "url": "https://vnexpress.net/doi-song-cooking-bun-cha-ha-noi-4594150.html",
+        "matchType": "similar"
+      },
       "source": {
         "name": "Copper — traditional dishes of the world",
         "datasetUrl": "https://copperapp.app/data/copper-dishes.json",
@@ -206,7 +322,8 @@
         "license": "CC-BY-4.0",
         "attribution": "Copper — https://copperapp.app/study/what-the-world-cooks.html",
         "attributionUrl": "https://copperapp.app/study/what-the-world-cooks.html"
-      }
+      },
+      "servings": 4
     },
     {
       "id": "copper:vn-pho-bo",
@@ -215,8 +332,8 @@
       "cuisine": "vietnamese",
       "country": "Vietnam",
       "countryCode": "VN",
-      "dataStatus": "ingredients_only",
-      "verificationStatus": "unverified",
+      "dataStatus": "full_recipe",
+      "verificationStatus": "adapted",
       "totalTimeMinutes": 240,
       "difficulty": "hard",
       "ingredients": [
@@ -321,9 +438,78 @@
           "ingredientId": "lime",
           "quantity": null,
           "unit": null
+        },
+        {
+          "sourceName": "sá sùng khô",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "mía",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "dầu hào",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "hành khô",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "muối",
+          "ingredientId": "salt",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "tiêu",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "nước lọc",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "sourceName": "ngò gai",
+          "ingredientId": null,
+          "quantity": null,
+          "unit": null
         }
       ],
-      "instructions": [],
+      "instructions": [
+        "Rửa sạch xương bò, chần trong nước sôi 2–3 phút rồi rửa lại. Thái mỏng phần thịt bò ăn tái; thái sợi gừng và nướng hành khô cho dậy mùi.",
+        "Cho xương vào nồi với nước, đun sôi và hớt bọt. Thêm gừng, hành khô nướng cùng hoa hồi, thảo quả và quế đã rang thơm, bọc trong túi gia vị; hạ nhỏ lửa và ninh 3–4 giờ.",
+        "Lọc nước dùng sang nồi sạch. Nêm nước mắm, muối và dầu hào; cho sá sùng cùng mía vào nấu nếu dùng, rồi nếm lại cho vừa. Giữ nước dùng sôi nhẹ.",
+        "Trụng bánh phở với nước nóng khoảng 70–80°C, để ráo rồi chia vào tô. Nhúng lát thịt bò vào nồi nước dùng đang sôi đến độ chín mong muốn và xếp lên bánh phở.",
+        "Chan nước dùng nóng, thêm hành lá, ngò gai, giá, húng quế, chanh và tiêu. Dọn ngay khi còn nóng."
+      ],
+      "addedIngredients": [
+        "sá sùng khô",
+        "mía",
+        "dầu hào",
+        "hành khô",
+        "muối",
+        "tiêu",
+        "nước lọc",
+        "ngò gai"
+      ],
+      "instructionReference": {
+        "title": "Cách làm món phở bò · VnExpress",
+        "url": "https://vnexpress.net/thoi-su/cach-lam-mon-pho-bo-4051323.html",
+        "matchType": "similar"
+      },
       "source": {
         "name": "Copper — traditional dishes of the world",
         "datasetUrl": "https://copperapp.app/data/copper-dishes.json",

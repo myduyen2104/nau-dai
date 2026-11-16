@@ -34,6 +34,7 @@ export type EngineRecipe = {
   servings?: number | null;
   difficulty?: string;
   dataStatus: "full_recipe" | "ingredients_only" | "catalog_only";
+  hasFullInstructions?: boolean;
   steps?: { instruction: string }[];
   source?: { title?: string; url?: string };
 };
@@ -249,7 +250,14 @@ function makeReasons(recipe: EngineRecipe, matched: string[], missing: string[],
 export function recommendRecipes(input: RecommendationInput): RecipeRecommendation[] {
   const now = input.now ?? new Date();
   const index = buildIngredientIndex(input.ingredients);
-  const activeStock = input.stock.filter((item) => !isExpired(item, now));
+  // A second/custom spelling of a spoiled or expired item must not make that
+  // same canonical ingredient available to recommendations.
+  const unsafeIngredientIds = new Set(input.stock
+    .filter((item) => isExpired(item, now))
+    .map((item) => stockCanonicalId(item, index)));
+  const activeStock = input.stock.filter((item) =>
+    !isExpired(item, now) && !unsafeIngredientIds.has(stockCanonicalId(item, index)),
+  );
   const stockIds = activeStock.map((item) => stockCanonicalId(item, index));
   const urgencyIds = new Set<string>();
   activeStock.forEach((item, position) => {
@@ -270,7 +278,7 @@ export function recommendRecipes(input: RecommendationInput): RecipeRecommendati
   const ranked = input.recipes.flatMap((recipe) => {
     const recipeIds = recipe.ingredients.map((item) => recipeCanonicalId(item, index));
     const requiredPositions = recipe.ingredients.map((item, position) => !item.optional ? position : -1).filter((position) => position >= 0);
-    const fullInstructions = recipe.dataStatus === "full_recipe" && (recipe.steps?.length ?? 0) > 0;
+    const fullInstructions = recipe.dataStatus === "full_recipe" && (!!recipe.hasFullInstructions || (recipe.steps?.length ?? 0) > 0);
     const usableIngredients = recipe.dataStatus !== "catalog_only" && recipe.ingredients.length > 0;
     const matchedPositions = usableIngredients ? requiredPositions.filter((position) => stockIds.some((stockId) => isMatch(recipeIds[position], stockId, recipe.method, index))) : [];
     const missingPositions = usableIngredients ? requiredPositions.filter((position) => !matchedPositions.includes(position)) : [];

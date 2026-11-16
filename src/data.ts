@@ -109,7 +109,7 @@ export const ingredients: Ingredient[] = [
   { id: 'mayonnaise', name: 'Mayonnaise', aliases: ["sốt mayonnaise", "mayo"], category: 'Gia vị', emoji: '🫙', vegan: false },
   { id: 'ketchup', name: 'Tương cà', aliases: ["ketchup"], category: 'Gia vị', emoji: '🫙' },
   { id: 'chili-sauce', name: 'Tương ớt', aliases: ["chili sauce"], category: 'Gia vị', emoji: '🌶️' },
-  { id: 'stock-cube', name: 'Viên súp', aliases: ["hạt nêm", "bouillon cube"], category: 'Gia vị', emoji: '🧊', vegan: false, containsMeat: true },
+  { id: 'stock-cube', name: 'Hạt nêm', aliases: ["viên súp", "bouillon cube", "hạt nêm Knorr", "hạt nêm Aji-ngon", "bột nêm rau củ"], category: 'Gia vị', emoji: '🧊', vegan: false, containsMeat: true },
   { id: 'cooking-wine', name: 'Rượu nấu ăn', aliases: ["cooking wine"], category: 'Gia vị', emoji: '🍶' },
   { id: 'tamarind', name: 'Me', aliases: ["tamarind"], category: 'Gia vị', emoji: '🫘' },
   { id: 'dried-shrimp', name: 'Tôm khô', aliases: ["dried shrimp"], category: 'Hải sản', emoji: '🦐' },
@@ -139,6 +139,7 @@ export const ingredients: Ingredient[] = [
     aliases: ["tomato"],
     category: "Rau củ",
     emoji: "🍅",
+    defaultUnit: "quả",
   },
   {
     id: "onion",
@@ -216,6 +217,7 @@ export const ingredients: Ingredient[] = [
     aliases: ["thịt lợn", "pork"],
     category: "Thịt",
     emoji: "🥩",
+    defaultUnit: "g",
   },
   {
     id: "beef",
@@ -244,6 +246,7 @@ export const ingredients: Ingredient[] = [
     aliases: ["trứng", "egg", "eggs"],
     category: "Trứng",
     emoji: "🥚",
+    defaultUnit: "quả",
   },
   {
     id: "quail-egg",
@@ -427,6 +430,7 @@ export type RecipeIngredient = {
   optional: boolean;
   role?: "main" | "required" | "seasoning" | "optional";
   note?: string;
+  instructionAdded?: boolean;
 };
 export type RecipeStep = { order: number; instruction: string; durationMinutes?: number };
 export type Recipe = {
@@ -434,6 +438,9 @@ export type Recipe = {
   slug: string;
   name: string;
   emoji: string;
+  imageUrl?: string;
+  imageFallbacks?: string[];
+  publishedAt?: string;
   description: string;
   category: string;
   cuisine: "vietnamese" | "international" | "fusion";
@@ -452,6 +459,8 @@ export type Recipe = {
   tips: string[];
   tags: string[];
   source: { type: "internal" | "website" | "youtube" | "tiktok" | "facebook"; url?: string; title: string };
+  instructionReference?: { title: string; url: string; matchType: "exact" | "similar" };
+  addedIngredients?: string[];
   verificationStatus: "verified" | "unverified" | "adapted";
   dataStatus: "full_recipe" | "ingredients_only" | "catalog_only";
 };

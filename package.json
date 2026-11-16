@@ -3,8 +3,45 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "engines": {"node": ">=22.6.0"},
-  "scripts": {"dev":"vite --host 0.0.0.0", "build":"tsc -b && vite build", "preview":"vite preview", "test":"node --experimental-strip-types --test tests/*.test.ts", "validate:recipes":"node scripts/validate-recipes.mjs", "validate:substitutions":"node scripts/validate-substitutions.mjs", "audit:sources":"node scripts/audit-sources.mjs", "import:recipes":"node scripts/import-recipes.mjs", "import:ingredients":"node scripts/import-ingredients.mjs", "normalize:ingredients":"node scripts/normalize-ingredients.mjs", "dedupe:recipes":"node scripts/deduplicate-recipes.mjs", "validate:dataset":"node scripts/validate-dataset.mjs", "index:recipes":"node scripts/build-recipe-index.mjs", "report:dataset":"node scripts/report-dataset.mjs", "sync:youtube":"node scripts/sync-youtube.mjs"},
-  "dependencies": {"lucide-react":"^0.468.0", "react":"^18.3.1", "react-dom":"^18.3.1"},
-  "devDependencies": {"@types/react":"^18.3.12", "@types/react-dom":"^18.3.1", "@vitejs/plugin-react":"^4.3.4", "typescript":"~5.6.2", "vite":"^6.0.1"}
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && node scripts/build-runtime-recipe-image-manifest.mjs && vite build && node scripts/prune-production-output.mjs",
+    "build:mnnm-app-data": "node scripts/build-mnnm-app-data.mjs",
+    "build:knorr-app-data": "node scripts/build-knorr-app-data.mjs",
+    "scrape:knorr-tips": "python3 scripts/scrape_knorr_tips.py",
+    "build:cooking-tips": "node scripts/build-cooking-tips.mjs",
+    "build:source-ingredient-catalog": "node scripts/build-source-ingredient-catalog.mjs",
+    "preview": "vite preview",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "validate:recipes": "node scripts/validate-recipes.mjs",
+    "validate:substitutions": "node scripts/validate-substitutions.mjs",
+    "audit:sources": "node scripts/audit-sources.mjs",
+    "import:recipes": "node scripts/import-recipes.mjs",
+    "import:ingredients": "node scripts/import-ingredients.mjs",
+    "normalize:ingredients": "node scripts/normalize-ingredients.mjs",
+    "dedupe:recipes": "node scripts/deduplicate-recipes.mjs",
+    "validate:dataset": "node scripts/validate-dataset.mjs",
+    "index:recipes": "node scripts/build-recipe-index.mjs",
+    "build:canonical-source-recipes": "node scripts/build-deduped-source-recipes.mjs",
+    "build:source-recipe-shards": "node scripts/build-source-recipe-shards.mjs",
+    "build:source-recipe-catalog": "node scripts/build-source-recipe-catalog.mjs",
+    "build:fridge-index": "node scripts/build-fridge-recipe-index.mjs",
+    "sync:youtube": "node scripts/sync-youtube.mjs",
+    "build:canonical-data": "npm run build:canonical-source-recipes && npm run build:source-recipe-shards && npm run build:source-recipe-catalog && npm run build:fridge-index && node scripts/dedupe-recipe-image-manifest.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.1"
+  }
 }
