@@ -1097,8 +1097,11 @@ function App() {
       .slice(0, 40)
       .map(({ recipe }) => recipe);
   }, [previewRecommendations, recipeById, favorites, recentRecipeIds, allLibraryRecipes, mnnmCatalog, knorrRecipes, stock.length]);
-  const homeNewestFeatured = stock.length === 0 && mnnmRecent.length > 0;
-  const homeFeaturedRecipe = homeNewestFeatured ? mnnmRecipeFor(mnnmRecent[0]) : homeFeatureRecipes.length ? homeFeatureRecipes[homeFeatureIndex % homeFeatureRecipes.length] : null;
+  const newestMnnmRecipe = stock.length === 0 && mnnmRecent.length > 0 ? mnnmRecipeFor(mnnmRecent[0]) : null;
+  const homeFeatureOptions = [...(newestMnnmRecipe ? [newestMnnmRecipe] : []), ...homeFeatureRecipes.filter((recipe) => recipe.id !== newestMnnmRecipe?.id)];
+  const homeFeatureOptionIndex = homeFeatureOptions.length ? homeFeatureIndex % homeFeatureOptions.length : 0;
+  const homeNewestFeatured = Boolean(newestMnnmRecipe && homeFeatureOptionIndex === 0);
+  const homeFeaturedRecipe = homeFeatureOptions[homeFeatureOptionIndex] ?? null;
   const homeMealCandidates = useMemo(() => {
     const preferred = previewRecommendations.map((item) => recipeById.get(item.recipeId)).filter((recipe): recipe is Recipe => Boolean(recipe));
     const sourceCatalogRecipes = [...(mnnmCatalog ?? []).filter((item) => item.has_instructions).map((item) => mnnmRecipeFor(item)), ...mnnmRecent.filter((item) => item.has_instructions).map((item) => mnnmRecipeFor(item))];
@@ -1761,7 +1764,7 @@ function App() {
                 {homeFeaturedRecipe.imageUrl ? <img src={homeFeaturedRecipe.imageUrl} alt={`Ảnh món ${homeFeaturedRecipe.name}`} decoding="async" onLoad={(event) => preferHigherResolutionImage(event, homeFeaturedRecipe.imageFallbacks)} onError={(event) => fallbackRecipeSourceImage(event, homeFeaturedRecipe)}/> : recipeImageFor(homeFeaturedRecipe.id) ? <img src={recipeImageFor(homeFeaturedRecipe.id)!.imagePath} alt={recipeImageFor(homeFeaturedRecipe.id)!.imageType === "ai_illustration" ? `Ảnh minh họa AI cho món ${homeFeaturedRecipe.name}` : `Ảnh ${homeFeaturedRecipe.name}`} decoding="async" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/> : <span aria-hidden="true">{homeFeaturedRecipe.emoji}</span>}
               </button>
               <span className="home-feature-kicker">{stock.length ? "GỢI Ý TỪ TỦ LẠNH" : homeNewestFeatured ? "MÓN MỚI NHẤT TỪ MÓN NGON MỖI NGÀY" : "MÓN THAM KHẢO HÔM NAY"}</span>
-              {!homeNewestFeatured && homeFeatureRecipes.length > 1 && <button className="home-feature-refresh" onClick={() => setHomeFeatureIndex((index) => (index + 1) % homeFeatureRecipes.length)} aria-label="Đổi món gợi ý"><RefreshCw size={16}/></button>}
+              {homeFeatureOptions.length > 1 && <button type="button" className="home-feature-refresh" onClick={() => setHomeFeatureIndex((index) => (index + 1) % homeFeatureOptions.length)} aria-label="Đổi món gợi ý" title="Đổi món gợi ý"><RefreshCw size={15}/>Đổi món</button>}
               <button className="home-feature-save" onClick={() => toggleFavorite(homeFeaturedRecipe.id)} aria-label={favorites.includes(homeFeaturedRecipe.id) ? "Bỏ lưu món" : "Lưu món"} aria-pressed={favorites.includes(homeFeaturedRecipe.id)}><Heart size={19} fill={favorites.includes(homeFeaturedRecipe.id) ? "currentColor" : "none"}/></button>
               <div className="home-feature-copy">
                 <div className="home-feature-meta"><span><Clock size={14}/>{homeFeaturedRecipe.totalTime != null ? `~${homeFeaturedRecipe.totalTime} phút` : "Thời gian chưa rõ"}</span><span>{homeFeaturedRecipe.difficulty}</span><span>{homeFeaturedRecipe.verificationStatus === "verified" ? "Đã xác minh" : "Chưa xác minh độc lập"}</span></div>
