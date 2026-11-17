@@ -1,4 +1,4 @@
-const CACHE = "fresh-shell-v11";
+const CACHE = "fresh-shell-v12";
 const SHELL = ["/", "/manifest.webmanifest", "/favicon.svg", "/icon.svg", "/favicon.ico", "/favicon-32x32.png", "/apple-touch-icon.png", "/pwa-192x192.png", "/pwa-512x512.png", "/pwa-maskable-512x512.png", "/data/recipe-image-manifest.json", "/data/canonical-recipe-id-aliases.json"];
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
