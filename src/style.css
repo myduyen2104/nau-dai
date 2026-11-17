@@ -1363,6 +1363,8 @@ h1, h2, h3 { color: #1a1c18; }
 .home-feature-kicker { position: absolute; top: 18px; left: 18px; display: inline-flex; align-items: center; min-height: 30px; padding: 0 12px; border-radius: 999px; background: #f27a25; color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .045em; }
 .home-feature-save, .home-feature-refresh { position: absolute; top: 16px; right: 16px; width: 42px; height: 42px; display: grid; place-items: center; border: 0; border-radius: 50%; background: rgba(28,30,26,.58); color: white; }
 .home-feature-refresh { right: 66px; width: 42px; min-width: 42px; display: grid; place-items: center; gap: 0; padding: 0; }
+.home-feature-refresh.is-loading svg { animation: home-feature-refresh-spin .85s linear infinite; }
+@keyframes home-feature-refresh-spin { to { transform: rotate(360deg); } }
 .home-feature-copy { width: 100%; padding: 24px 18px 18px; }
 .home-feature-meta { display: flex; flex-wrap: wrap; gap: 12px; color: #fff; font-size: 11px; font-weight: 650; }
 .home-feature-meta span { display: inline-flex; align-items: center; gap: 5px; }

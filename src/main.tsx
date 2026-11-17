@@ -425,6 +425,7 @@ function App() {
   const [savedQuery, setSavedQuery] = useState("");
   const [savedFilter, setSavedFilter] = useState<"all" | "ready" | "need">("all");
   const [homeFeatureIndex, setHomeFeatureIndex] = useState(0);
+  const [homeFeatureShufflePending, setHomeFeatureShufflePending] = useState(false);
   const [homeMealIndex, setHomeMealIndex] = useState(0);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 699px)");
@@ -732,7 +733,7 @@ function App() {
   const [recommendationMatchedOnly, setRecommendationMatchedOnly] = useState(false);
   const [recommendationLimit, setRecommendationLimit] = useState(RECOMMENDATION_PAGE_SIZE);
   useEffect(() => {
-    if (page !== "explore" || sourceCatalog) return;
+    if ((page !== "explore" && !(page === "home" && homeFeatureShufflePending)) || sourceCatalog) return;
     let cancelled = false;
     const controller = new AbortController();
     setSourceCatalogLoad("loading");
@@ -744,10 +745,10 @@ function App() {
       })
       .catch(() => { if (!cancelled) setSourceCatalogLoad("error"); });
     return () => { cancelled = true; controller.abort(); };
-  }, [page, sourceCatalog, sourceCatalogRetry]);
+  }, [page, sourceCatalog, sourceCatalogRetry, homeFeatureShufflePending]);
   useEffect(() => {
     const savedNeedsMnnm = page === "favorites" && favorites.some((id) => id.startsWith("monngonmoingay:"));
-    if ((page !== "explore" && page !== "fridge" && !(page === "home" && stock.length > 0) && !savedNeedsMnnm) || mnnmCatalog) return;
+    if ((page !== "explore" && page !== "fridge" && !(page === "home" && homeFeatureShufflePending) && !savedNeedsMnnm) || mnnmCatalog) return;
     let cancelled = false;
     const controller = new AbortController();
     setMnnmLoad("loading");
@@ -759,7 +760,7 @@ function App() {
       })
       .catch(() => { if (!cancelled) setMnnmLoad("error"); });
     return () => { cancelled = true; controller.abort(); };
-  }, [page, stock.length, favorites, mnnmCatalog, mnnmRetry]);
+  }, [page, stock.length, favorites, mnnmCatalog, mnnmRetry, homeFeatureShufflePending]);
   useEffect(() => {
     if (page !== "home" || mnnmRecent.length) return;
     const controller = new AbortController();
@@ -785,7 +786,7 @@ function App() {
   }, [page, knorrHomeRecipes]);
   useEffect(() => {
     const savedNeedsKnorr = page === "favorites" && favorites.some((id) => id.startsWith("knorr:"));
-    if ((page !== "explore" && page !== "fridge" && !(page === "home" && stock.length > 0) && !savedNeedsKnorr) || knorrRecipes) return;
+    if ((page !== "explore" && page !== "fridge" && !(page === "home" && homeFeatureShufflePending) && !savedNeedsKnorr) || knorrRecipes) return;
     let cancelled = false;
     const controller = new AbortController();
     setKnorrLoad("loading");
@@ -797,7 +798,7 @@ function App() {
       })
       .catch(() => { if (!cancelled) setKnorrLoad("error"); });
     return () => { cancelled = true; controller.abort(); };
-  }, [page, stock.length, favorites, knorrRecipes, knorrRetry]);
+  }, [page, stock.length, favorites, knorrRecipes, knorrRetry, homeFeatureShufflePending]);
   useEffect(() => {
     if (page !== "fridge" && page !== "explore" && !(page === "home" && stock.length > 0)) return;
     let cancelled = false;
@@ -1079,26 +1080,58 @@ function App() {
     return matchesQuery && (savedFilter === "all" || (savedFilter === "ready" ? isReadyByName : !isReadyByName));
   }), [favorites, recipeById, savedQuery, savedFilter, ids]);
   const savedReadyCount = favorites.map((id) => recipeById.get(id)).filter((recipe): recipe is Recipe => Boolean(recipe)).filter((recipe) => recipe.required.length > 0 && recipe.required.every((id) => ids.has(id))).length;
+  const sourceFeatureRecipes = useMemo(() => (sourceCatalog ?? []).filter((item) => item.has_instructions && item.has_ingredients && (item.ingredients?.length ?? 0) > 0).map((item): Recipe => {
+    const ingredientsForRecipe = item.ingredients ?? [];
+    return {
+      id: `dinhduong2598:${item.canonical_recipe_id ?? item.id}`, slug: item.id, name: item.name, emoji: "🍲", description: "", category: item.category ?? "Món nguồn",
+      cuisine: "vietnamese", method: "", minutes: null, preparationTime: null, cookingTime: null, totalTime: null,
+      difficulty: "Chưa đánh giá", servings: null, required: ingredientsForRecipe, optional: [],
+      ingredients: ingredientsForRecipe.map((name, index) => ({ ingredientId: `${item.canonical_recipe_id ?? item.id}:ingredient-${index}`, sourceName: name, quantity: null, unit: "", optional: false, role: "required" as const })),
+      steps: [], equipment: [], tips: [], tags: item.category_labels ?? [],
+      source: { type: "website", url: item.source_url ?? undefined, title: "Dinh dưỡng 2598" },
+      verificationStatus: "unverified", dataStatus: "full_recipe",
+    };
+  }), [sourceCatalog]);
+  const homeFeatureSourcesReady = (sourceCatalog !== null || sourceCatalogLoad === "error")
+    && (mnnmCatalog !== null || mnnmLoad === "error")
+    && (knorrRecipes !== null || knorrLoad === "error");
   const homeFeatureRecipes = useMemo(() => {
-    const eligible = [...new Map([
+    const sourcePriority = (recipe: Recipe) => recipe.source.title === "Món Ngon Mỗi Ngày" ? 0 : recipe.source.title === "Knorr Việt Nam" ? 1 : recipe.id.startsWith("dinhduong2598:") ? 2 : 3;
+    const allCandidates = [...new Map([
+      ...sourceFeatureRecipes,
       ...recipeById.values(),
       ...(mnnmCatalog ?? []).filter((item) => item.has_instructions).map((item) => mnnmRecipeFor(item)),
       ...previewRecommendations.map((item) => recipeById.get(item.recipeId)).filter((recipe): recipe is Recipe => Boolean(recipe)),
       ...favorites.map((id) => recipeById.get(id)).filter((recipe): recipe is Recipe => Boolean(recipe)),
       ...recentRecipeIds.map((id) => recipeById.get(id)).filter((recipe): recipe is Recipe => Boolean(recipe)),
       ...allLibraryRecipes,
-    ].filter((recipe) => recipe.steps.length > 0 || (recipe.source.title === "Món Ngon Mỗi Ngày" && recipe.dataStatus === "full_recipe")).map((recipe) => [recipe.id, recipe])).values()];
+    ].filter((recipe) => recipe.steps.length > 0 || (recipe.dataStatus === "full_recipe" && (recipe.source.title === "Món Ngon Mỗi Ngày" || recipe.id.startsWith("dinhduong2598:")))).map((recipe) => [recipe.id, recipe])).values()]
+      .sort((a, b) => sourcePriority(a) - sourcePriority(b));
+    const canonicalCandidates = new Map<string, Recipe>();
+    for (const recipe of allCandidates) {
+      const key = canonical(recipe.name);
+      if (key && !canonicalCandidates.has(key)) canonicalCandidates.set(key, recipe);
+    }
     const recommended = stock.length ? previewRecommendations.map((item) => recipeById.get(item.recipeId)).filter((recipe): recipe is Recipe => Boolean(recipe)) : [];
-    const prioritized = [...new Map([...recommended, ...eligible].map((recipe) => [recipe.id, recipe])).values()];
-    return prioritized
-      .map((recipe) => ({ recipe, rank: Math.random() ** (recipe.source.title === "Knorr Việt Nam" || recipe.source.title === "Món Ngon Mỗi Ngày" ? 3.5 : 1) }))
+    const recommendedNames = new Set(recommended.map((recipe) => canonical(recipe.name)));
+    const remaining = [...canonicalCandidates.values()].filter((recipe) => !recommendedNames.has(canonical(recipe.name)));
+    return [...recommended, ...remaining]
+      .map((recipe) => ({ recipe, rank: Math.random() }))
       .sort((a, b) => b.rank - a.rank)
-      .slice(0, 40)
       .map(({ recipe }) => recipe);
-  }, [previewRecommendations, recipeById, favorites, recentRecipeIds, allLibraryRecipes, mnnmCatalog, knorrRecipes, stock.length]);
+  }, [previewRecommendations, recipeById, favorites, recentRecipeIds, allLibraryRecipes, mnnmCatalog, sourceFeatureRecipes, knorrRecipes, stock.length]);
   const newestMnnmRecipe = stock.length === 0 && mnnmRecent.length > 0 ? mnnmRecipeFor(mnnmRecent[0]) : null;
-  const homeFeatureOptions = [...(newestMnnmRecipe ? [newestMnnmRecipe] : []), ...homeFeatureRecipes.filter((recipe) => recipe.id !== newestMnnmRecipe?.id)];
+  const newestFeaturedName = newestMnnmRecipe ? canonical(newestMnnmRecipe.name) : "";
+  const homeFeatureOptions = [...(newestMnnmRecipe ? [newestMnnmRecipe] : []), ...homeFeatureRecipes.filter((recipe) => recipe.id !== newestMnnmRecipe?.id && canonical(recipe.name) !== newestFeaturedName)];
   const homeFeatureOptionIndex = homeFeatureOptions.length ? homeFeatureIndex % homeFeatureOptions.length : 0;
+  useEffect(() => {
+    if (!homeFeatureShufflePending || !homeFeatureSourcesReady) return;
+    if (homeFeatureOptions.length > 1) {
+      const randomIndex = Math.floor(Math.random() * (homeFeatureOptions.length - 1));
+      setHomeFeatureIndex(randomIndex >= homeFeatureOptionIndex ? randomIndex + 1 : randomIndex);
+    }
+    setHomeFeatureShufflePending(false);
+  }, [homeFeatureShufflePending, homeFeatureSourcesReady, homeFeatureOptions.length, homeFeatureOptionIndex]);
   const homeNewestFeatured = Boolean(newestMnnmRecipe && homeFeatureOptionIndex === 0);
   const homeFeaturedRecipe = homeFeatureOptions[homeFeatureOptionIndex] ?? null;
   const homeFeatureDescription = homeFeaturedRecipe?.description
@@ -1249,6 +1282,13 @@ function App() {
     if (r.source.title === "Món Ngon Mỗi Ngày") {
       const item = mnnmCatalog?.find((entry) => entry.id === r.id) ?? mnnmRecent.find((entry) => entry.id === r.id);
       if (item) { openMnnmRecipe(item, preserveVariantGroup); return; }
+    }
+    if (r.id.startsWith("dinhduong2598:")) {
+      const canonicalId = r.id.slice("dinhduong2598:".length);
+      const catalogItem = sourceCatalog?.find((entry) => (entry.canonical_recipe_id ?? entry.id) === canonicalId);
+      const fridgeItem = sourceFridgeIndex?.find((entry) => (entry.canonical_recipe_id ?? entry.id) === canonicalId);
+      const item = catalogItem ?? (fridgeItem ? sourceFridgeIndexToCatalogItem(fridgeItem) : undefined);
+      if (item) { openSourceCatalogItem(item, preserveVariantGroup); return; }
     }
     if (!preserveVariantGroup) setActiveLibraryResultGroup(null);
     sourceDetailRequest.current += 1;
@@ -1775,7 +1815,12 @@ function App() {
                 {homeFeaturedRecipe.imageUrl ? <img src={homeFeaturedRecipe.imageUrl} alt={`Ảnh món ${homeFeaturedRecipe.name}`} decoding="async" onLoad={(event) => preferHigherResolutionImage(event, homeFeaturedRecipe.imageFallbacks)} onError={(event) => fallbackRecipeSourceImage(event, homeFeaturedRecipe)}/> : recipeImageFor(homeFeaturedRecipe.id) ? <img src={recipeImageFor(homeFeaturedRecipe.id)!.imagePath} alt={recipeImageFor(homeFeaturedRecipe.id)!.imageType === "ai_illustration" ? `Ảnh minh họa AI cho món ${homeFeaturedRecipe.name}` : `Ảnh ${homeFeaturedRecipe.name}`} decoding="async" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/> : <span aria-hidden="true">{homeFeaturedRecipe.emoji}</span>}
               </button>
               <span className="home-feature-kicker">{stock.length ? "GỢI Ý TỪ TỦ LẠNH" : homeNewestFeatured ? "MÓN MỚI NHẤT TỪ MÓN NGON MỖI NGÀY" : "MÓN THAM KHẢO HÔM NAY"}</span>
-              {homeFeatureOptions.length > 1 && <button type="button" className="home-feature-refresh" onClick={() => setHomeFeatureIndex((index) => (index + 1) % homeFeatureOptions.length)} aria-label="Đổi món gợi ý" title="Đổi món gợi ý"><RefreshCw size={15}/></button>}
+              {homeFeatureOptions.length > 1 && <button type="button" className={`home-feature-refresh${homeFeatureShufflePending ? " is-loading" : ""}`} disabled={homeFeatureShufflePending} onClick={() => {
+                if (homeFeatureShufflePending) return;
+                if (!homeFeatureSourcesReady) { setHomeFeatureShufflePending(true); return; }
+                const randomIndex = Math.floor(Math.random() * (homeFeatureOptions.length - 1));
+                setHomeFeatureIndex(randomIndex >= homeFeatureOptionIndex ? randomIndex + 1 : randomIndex);
+              }} aria-label={homeFeatureShufflePending ? "Đang tải món từ các nguồn" : "Đổi món gợi ý ngẫu nhiên"} title={homeFeatureShufflePending ? "Đang tải món từ các nguồn" : "Đổi món ngẫu nhiên"}><RefreshCw size={15}/></button>}
               <button className="home-feature-save" onClick={() => toggleFavorite(homeFeaturedRecipe.id)} aria-label={favorites.includes(homeFeaturedRecipe.id) ? "Bỏ lưu món" : "Lưu món"} aria-pressed={favorites.includes(homeFeaturedRecipe.id)}><Heart size={19} fill={favorites.includes(homeFeaturedRecipe.id) ? "currentColor" : "none"}/></button>
               <div className="home-feature-copy">
                 <div className="home-feature-meta"><span><Clock size={14}/>{homeFeaturedRecipe.totalTime != null ? `~${homeFeaturedRecipe.totalTime} phút` : homeFeaturedRecipe.difficulty}</span></div>
