@@ -1124,6 +1124,22 @@ function App() {
   const newestFeaturedName = newestMnnmRecipe ? canonical(newestMnnmRecipe.name) : "";
   const homeFeatureOptions = [...(newestMnnmRecipe ? [newestMnnmRecipe] : []), ...homeFeatureRecipes.filter((recipe) => recipe.id !== newestMnnmRecipe?.id && canonical(recipe.name) !== newestFeaturedName)];
   const homeFeatureOptionIndex = homeFeatureOptions.length ? homeFeatureIndex % homeFeatureOptions.length : 0;
+  const shuffleHomeFeature = () => {
+    if (homeFeatureShufflePending || homeFeatureOptions.length < 2) return;
+    if (!homeFeatureSourcesReady) {
+      setHomeFeatureShufflePending(true);
+      return;
+    }
+    const randomIndex = Math.floor(Math.random() * (homeFeatureOptions.length - 1));
+    setHomeFeatureIndex(randomIndex >= homeFeatureOptionIndex ? randomIndex + 1 : randomIndex);
+  };
+  const shuffleHomeFeatureRef = useRef(shuffleHomeFeature);
+  shuffleHomeFeatureRef.current = shuffleHomeFeature;
+  useEffect(() => {
+    if (page !== "home") return;
+    const interval = window.setInterval(() => shuffleHomeFeatureRef.current(), 60_000);
+    return () => window.clearInterval(interval);
+  }, [page]);
   useEffect(() => {
     if (!homeFeatureShufflePending || !homeFeatureSourcesReady) return;
     if (homeFeatureOptions.length > 1) {
@@ -1815,12 +1831,7 @@ function App() {
                 {homeFeaturedRecipe.imageUrl ? <img src={homeFeaturedRecipe.imageUrl} alt={`Ảnh món ${homeFeaturedRecipe.name}`} decoding="async" onLoad={(event) => preferHigherResolutionImage(event, homeFeaturedRecipe.imageFallbacks)} onError={(event) => fallbackRecipeSourceImage(event, homeFeaturedRecipe)}/> : recipeImageFor(homeFeaturedRecipe.id) ? <img src={recipeImageFor(homeFeaturedRecipe.id)!.imagePath} alt={recipeImageFor(homeFeaturedRecipe.id)!.imageType === "ai_illustration" ? `Ảnh minh họa AI cho món ${homeFeaturedRecipe.name}` : `Ảnh ${homeFeaturedRecipe.name}`} decoding="async" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/> : <span aria-hidden="true">{homeFeaturedRecipe.emoji}</span>}
               </button>
               <span className="home-feature-kicker">{stock.length ? "GỢI Ý TỪ TỦ LẠNH" : homeNewestFeatured ? "MÓN MỚI NHẤT TỪ MÓN NGON MỖI NGÀY" : "MÓN THAM KHẢO HÔM NAY"}</span>
-              {homeFeatureOptions.length > 1 && <button type="button" className={`home-feature-refresh${homeFeatureShufflePending ? " is-loading" : ""}`} disabled={homeFeatureShufflePending} onClick={() => {
-                if (homeFeatureShufflePending) return;
-                if (!homeFeatureSourcesReady) { setHomeFeatureShufflePending(true); return; }
-                const randomIndex = Math.floor(Math.random() * (homeFeatureOptions.length - 1));
-                setHomeFeatureIndex(randomIndex >= homeFeatureOptionIndex ? randomIndex + 1 : randomIndex);
-              }} aria-label={homeFeatureShufflePending ? "Đang tải món từ các nguồn" : "Đổi món gợi ý ngẫu nhiên"} title={homeFeatureShufflePending ? "Đang tải món từ các nguồn" : "Đổi món ngẫu nhiên"}><RefreshCw size={15}/></button>}
+              {homeFeatureOptions.length > 1 && <button type="button" className={`home-feature-refresh${homeFeatureShufflePending ? " is-loading" : ""}`} disabled={homeFeatureShufflePending} onClick={shuffleHomeFeature} aria-label={homeFeatureShufflePending ? "Đang tải món từ các nguồn" : "Đổi món gợi ý ngẫu nhiên"} title={homeFeatureShufflePending ? "Đang tải món từ các nguồn" : "Đổi món ngẫu nhiên"}><RefreshCw size={15}/></button>}
               <button className="home-feature-save" onClick={() => toggleFavorite(homeFeaturedRecipe.id)} aria-label={favorites.includes(homeFeaturedRecipe.id) ? "Bỏ lưu món" : "Lưu món"} aria-pressed={favorites.includes(homeFeaturedRecipe.id)}><Heart size={19} fill={favorites.includes(homeFeaturedRecipe.id) ? "currentColor" : "none"}/></button>
               <div className="home-feature-copy">
                 <div className="home-feature-meta"><span><Clock size={14}/>{homeFeaturedRecipe.totalTime != null ? `~${homeFeaturedRecipe.totalTime} phút` : homeFeaturedRecipe.difficulty}</span></div>
