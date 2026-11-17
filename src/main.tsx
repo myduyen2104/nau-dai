@@ -7,6 +7,7 @@ import {
   BookOpen,
   Bookmark,
   CheckCircle2,
+  ChevronDown,
   Download,
   ExternalLink,
   Check,
@@ -412,6 +413,7 @@ function App() {
   const [libraryStatus, setLibraryStatus] = useState("Tất cả");
   const [librarySourceFilter, setLibrarySourceFilter] = useState<"all" | "internal" | "copper" | "dinhduong2598" | "mnnm" | "knorr" | "other">("all");
   const [homeFiltersOpen, setHomeFiltersOpen] = useState(false);
+  const [homeFilterGroup, setHomeFilterGroup] = useState<"category" | "source" | "instructions" | null>(null);
   const [libraryDiet, setLibraryDiet] = useState(false);
   const [libraryQuickOnly, setLibraryQuickOnly] = useState(false);
   const [libraryLimit, setLibraryLimit] = useState(30);
@@ -1680,6 +1682,11 @@ function App() {
   const mnnmCategories = [...new Set((mnnmCatalog ?? []).map((item) => item.category))];
   const knorrCategories = (knorrRecipes ?? []).map((recipe) => recipe.category);
   const libraryCategories = ["Tất cả", ...new Set([...allLibraryRecipes.map((recipe) => recipe.category), ...(sourceCatalog ?? []).flatMap((item) => item.category_labels ?? [item.category]).filter((value): value is string => Boolean(value)), ...mnnmCategories, ...knorrCategories])];
+  const homeFilterDefinitions = [
+    { id: "category" as const, label: "Nhóm món", selected: libraryCategory, options: libraryCategories.map((value) => ({ value, label: value })) },
+    { id: "source" as const, label: "Nguồn công thức", selected: ({ all: "Tất cả nguồn", internal: "Nội bộ", copper: "Copper", dinhduong2598: "Dinh dưỡng 2598", mnnm: "Món Ngon Mỗi Ngày", knorr: "Knorr Việt Nam", other: "Nguồn khác" } as const)[librarySourceFilter], options: [{ value: "all", label: "Tất cả nguồn" }, { value: "internal", label: "Nội bộ" }, { value: "copper", label: "Copper" }, { value: "dinhduong2598", label: "Dinh dưỡng 2598" }, { value: "mnnm", label: "Món Ngon Mỗi Ngày" }, { value: "knorr", label: "Knorr Việt Nam" }, { value: "other", label: "Nguồn khác" }] },
+    { id: "instructions" as const, label: "Hướng dẫn", selected: ({ "Tất cả": "Tất cả", full_recipe: "Có hướng dẫn", ingredients_only: "Chỉ có nguyên liệu", catalog_only: "Chỉ có tên món" } as const)[libraryStatus as "Tất cả" | "full_recipe" | "ingredients_only" | "catalog_only"], options: [{ value: "Tất cả", label: "Tất cả" }, { value: "full_recipe", label: "Có hướng dẫn" }, { value: "ingredients_only", label: "Chỉ có nguyên liệu" }, { value: "catalog_only", label: "Chỉ có tên món" }] },
+  ];
   const exploreMethodCategories = ["Món canh", "Món kho", "Món xào", "Món nước", "Món ăn nhẹ", "Món chay"]
     .map((name) => libraryCategories.find((category) => category.toLocaleLowerCase("vi") === name.toLocaleLowerCase("vi")))
     .filter((category): category is string => Boolean(category));
@@ -1752,14 +1759,16 @@ function App() {
                 <form className="home-search" role="search" onSubmit={(event) => { event.preventDefault(); setDiscoveryMode("all"); setPage("explore"); }}>
                   <Search size={19}/>
                   <input aria-label="Tìm món ngon hoặc nguyên liệu" value={libraryQuery} onChange={(event) => setLibraryQuery(event.target.value)} placeholder="Tìm món ngon, đồ trong tủ lạnh…"/>
-                  <button type="button" aria-label={homeFiltersOpen ? "Đóng bộ lọc món ăn" : "Mở bộ lọc món ăn"} aria-expanded={homeFiltersOpen} onClick={() => setHomeFiltersOpen((open) => !open)}><SlidersHorizontal size={18}/></button>
+                  <button type="button" aria-label={homeFiltersOpen ? "Đóng bộ lọc món ăn" : "Mở bộ lọc món ăn"} aria-expanded={homeFiltersOpen} onClick={() => setHomeFiltersOpen((open) => { if (!open) setHomeFilterGroup(null); return !open; })}><SlidersHorizontal size={18}/></button>
                 </form>
                 {homeFiltersOpen && <div className="home-filter-popover" aria-label="Bộ lọc món ăn">
-                  <label><span>Nhóm món</span><select value={libraryCategory} onChange={(event) => setLibraryCategory(event.target.value)}>{libraryCategories.map((value) => <option key={value}>{value}</option>)}</select></label>
-                  <label><span>Nguồn công thức</span><select value={librarySourceFilter} onChange={(event) => setLibrarySourceFilter(event.target.value as typeof librarySourceFilter)}><option value="all">Tất cả nguồn</option><option value="internal">Nội bộ</option><option value="copper">Copper</option><option value="dinhduong2598">Dinh dưỡng 2598</option><option value="mnnm">Món Ngon Mỗi Ngày</option><option value="knorr">Knorr Việt Nam</option><option value="other">Nguồn khác</option></select></label>
-                  <label><span>Hướng dẫn</span><select value={libraryStatus} onChange={(event) => setLibraryStatus(event.target.value)}><option value="Tất cả">Tất cả</option><option value="full_recipe">Có hướng dẫn</option><option value="ingredients_only">Chỉ có nguyên liệu</option><option value="catalog_only">Chỉ có tên món</option></select></label>
-                  <label className="home-filter-check"><input type="checkbox" checked={libraryDiet} onChange={(event) => setLibraryDiet(event.target.checked)}/> Không thịt/hải sản</label>
-                  <label className="home-filter-check"><input type="checkbox" checked={libraryQuickOnly} onChange={(event) => setLibraryQuickOnly(event.target.checked)}/> Món dưới 30 phút</label>
+                  <div className="home-filter-head"><span className="home-filter-title"><SlidersHorizontal size={17}/>Lọc món</span><button type="button" className="home-filter-reset" onClick={() => { setLibraryCategory("Tất cả"); setLibrarySourceFilter("all"); setLibraryStatus("Tất cả"); setLibraryDiet(false); setLibraryQuickOnly(false); setHomeFilterGroup(null); }}>Đặt lại</button></div>
+                  <div className="home-filter-fields">{homeFilterDefinitions.map((filter) => <div className="home-filter-field" key={filter.id}>
+                    <span>{filter.label}</span>
+                    <button type="button" className="home-filter-select" aria-expanded={homeFilterGroup === filter.id} onClick={() => setHomeFilterGroup((current) => current === filter.id ? null : filter.id)}><b>{filter.selected}</b><ChevronDown size={16}/></button>
+                    {homeFilterGroup === filter.id && <div className="home-filter-options" role="group" aria-label={filter.label}>{filter.options.map((option) => <button type="button" className={filter.selected === option.label || (filter.id === "category" && filter.selected === option.value) ? "selected" : ""} key={option.value} onClick={() => { if (filter.id === "category") setLibraryCategory(option.value); else if (filter.id === "source") setLibrarySourceFilter(option.value as typeof librarySourceFilter); else setLibraryStatus(option.value); setHomeFilterGroup(null); }}>{option.label}</button>)}</div>}
+                  </div>)}</div>
+                  <div className="home-filter-toggles"><button type="button" className={libraryDiet ? "active" : ""} aria-pressed={libraryDiet} onClick={() => setLibraryDiet((value) => !value)}><span>{libraryDiet && <Check size={14}/>}</span>Không thịt/hải sản</button><button type="button" className={libraryQuickOnly ? "active" : ""} aria-pressed={libraryQuickOnly} onClick={() => setLibraryQuickOnly((value) => !value)}><span>{libraryQuickOnly && <Check size={14}/>}</span>Dưới 30 phút</button></div>
                   <button type="button" className="home-filter-done" onClick={() => setHomeFiltersOpen(false)}>Xong</button>
                 </div>}
               </div>
