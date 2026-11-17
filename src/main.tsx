@@ -404,7 +404,6 @@ function App() {
   const [trendingVideos, setTrendingVideos] = useState<YouTubeCatalogVideo[]>([]);
   const [trendingCatalogStatus, setTrendingCatalogStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [trendingCatalogRetry, setTrendingCatalogRetry] = useState(0);
-  const [trendingCatalogUpdatedAt, setTrendingCatalogUpdatedAt] = useState<string | null>(null);
   const [visibleTrendingCount, setVisibleTrendingCount] = useState(12);
   const [failedTrendingVideoIds, setFailedTrendingVideoIds] = useState<string[]>([]);
   const [videoHistoryMessage, setVideoHistoryMessage] = useState("");
@@ -873,7 +872,6 @@ function App() {
     const controller = new AbortController();
     setTrendingCatalogStatus("loading");
     setTrendingVideos([]);
-    setTrendingCatalogUpdatedAt(null);
     setActiveTrendingVideoId(null);
     setVideoHistoryMessage("");
     const sessionSeed = (newVideoSessionSeed() + (++trendingSessionCounterRef.current * 0x9e3779b9)) >>> 0;
@@ -891,7 +889,6 @@ function App() {
       const ranked = rankYoutubeFeed(freshVideos, history, sessionSeed, interests);
       trendingWatchHistoryRef.current = history;
       setTrendingVideos(ranked);
-      setTrendingCatalogUpdatedAt(catalog.updatedAt ?? null);
       setVisibleTrendingCount(Math.min(12, ranked.length));
       setFailedTrendingVideoIds([]);
       seenTrendingVideoIdsRef.current = new Set();
@@ -1820,7 +1817,7 @@ function App() {
                     {stock.length > 5 && <button className="board-more-ingredients" onClick={() => setPage("fridge")}>+{stock.length - 5}</button>}
                   </div>
                   <button className="board-pantry-footer" onClick={() => setPage("fridge")}>Xem số lượng và hạn dùng <ChevronRight size={14}/></button>
-                </> : <div className="board-pantry-empty"><p>Chưa có gì trong tủ? Thêm rau, đạm hoặc món ăn sẵn — không cần đủ một công thức.</p><button className="board-add-button" onClick={() => setPage("fridge")}><Plus size={16}/> Thêm món vừa mua</button></div>}
+                </> : <div className="board-pantry-empty"><button className="board-add-button" onClick={() => setPage("fridge")}><Plus size={16}/> Thêm nguyên liệu</button></div>}
               </section>
               {stock.length > 0 && <button className="board-match-link" onClick={() => showBestTab()}><span aria-hidden="true"/><span>Tìm cách nấu từ những món này</span><ChevronRight size={15}/></button>}
             </section>
@@ -1837,7 +1834,7 @@ function App() {
               </aside>;
             })() : homeFeaturedRecipe?.tips[0] && <aside className="kitchen-tip" aria-label={`Mẹo nấu ${homeFeaturedRecipe.name}`}><span className="kitchen-tip-icon"><Lightbulb size={20}/></span><div><b>Mẹo nhỏ gian bếp</b><p>{shortSourceTip(homeFeaturedRecipe.tips[0])}</p><small>Mẹo từ hướng dẫn món {homeFeaturedRecipe.name}</small></div></aside>}
             {flexibleSuggestions.length > 0 && <FlexibleSuggestionPanel recipes={flexibleSuggestions} onOpen={openRecipe} compact/>}
-            <section className={`suggestion-preview${stock.length === 0 ? " empty-home-preview" : ""}`}>
+            {stock.length > 0 && <section className="suggestion-preview">
               <div className="suggestion-preview-head"><div><h2>{previewRecommendations.length ? "Món nấu được ngay" : stock.length ? "Chưa thấy món khớp" : "Tìm món theo nguyên liệu"}</h2></div><button onClick={() => stock.length ? showBestTab() : setPage("explore")}>{stock.length ? "Tất cả món" : "Khám phá"} <ChevronRight size={15}/></button></div>
               {previewRecommendations.length ? (
                 <div className="preview-scroll">
@@ -1847,22 +1844,22 @@ function App() {
                   })}
                 </div>
               ) : <div className="preview-empty"><span className="preview-empty-mark"><CookingPot size={21}/></span><div><b>{stock.length ? "Thêm một nguyên liệu hoặc chọn món khác" : "Gợi ý sẽ dựa trên tủ lạnh của bạn"}</b><p>{stock.length ? "Mở thư viện để chọn món rồi xem nguyên liệu còn thiếu." : "Thêm rau, đạm hoặc món ăn sẵn — không cần đủ một công thức."}</p></div><button onClick={() => stock.length ? setPage("explore") : setPage("fridge")}>{stock.length ? "Tìm món khác" : "Thêm nguyên liệu"}<ChevronRight size={15}/></button></div>}
-            </section>
-            <section className={`home-use-soon${useSoonItems.length ? "" : " no-priority"}`}>
+            </section>}
+            {stock.length > 0 && <section className={`home-use-soon${useSoonItems.length ? "" : " no-priority"}`}>
               <div className="section-title-row"><div><h2>Cần dùng sớm</h2></div>{useSoonItems.length > 0 && <button className="text-button" onClick={() => showTab("use_soon")}>Xem món <ChevronRight size={15}/></button>}</div>
               {useSoonItems.length ? <div className="use-soon-list">{useSoonItems.map((item) => {
                 const ingredient = ingredients.find((entry) => entry.id === item.id);
                 const name = ingredient?.name ?? item.name ?? item.id.replace(/^custom-/, "").replace(/-/g, " ");
                 return <div className="use-soon-item" key={item.id}><span>{ingredient?.emoji ?? "🥣"}</span><div><b>{name}</b><small>{item.fresh === "urgent" ? "Nên dùng hôm nay" : item.fresh === "soon" ? "Sắp hết hạn" : `Hạn dùng ${item.expiresAt}`}</small></div><span className="use-soon-qty">{item.quantity} {item.unit}</span></div>;
-              })}</div> : <div className="use-soon-empty"><span>✓</span><div><b>{stock.length ? "Chưa có nguyên liệu cần ưu tiên" : "Theo dõi hạn dùng trong tủ lạnh"}</b><small>{stock.length ? "Đánh dấu món sắp hết hạn để ưu tiên trong gợi ý." : "Thêm nguyên liệu và ngày hết hạn để sắp xếp món nên dùng trước."}</small></div></div>}
-            </section>
+              })}</div> : <div className="use-soon-empty"><span>✓</span><div><b>Chưa có món cần ưu tiên</b></div></div>}
+            </section>}
           </>
         )}
         {page !== "home" && page !== "fridge" && page !== "cook" && page !== "shopping" && <div className={`greeting${page === "explore" ? " explore-lead" : ""}`}>
           <h1>
             {page === "favorites" ? "Sổ tay món ngon" : page === "explore" ? discoveryMode === "fridge" ? "Món hợp với tủ lạnh" : "Chợ hôm nay có gì ngon?" : label}
           </h1>
-          {page === "explore" && <p>{discoveryMode === "fridge" ? "Ưu tiên món theo nguyên liệu có sẵn, lượng còn lại và hạn dùng." : "Tìm trong thư viện công thức và video món ăn."}</p>}
+          {page === "explore" && discoveryMode === "fridge" && <p>Ưu tiên nguyên liệu sắp hết hạn.</p>}
         </div>}
         {page === "explore" && <div className="tabs discovery-mode-tabs" role="tablist" aria-label="Chế độ tìm món">
           <button role="tab" aria-selected={discoveryMode === "all"} className={discoveryMode === "all" ? "active" : ""} onClick={() => setDiscoveryMode("all")}>Tất cả món</button>
@@ -1873,16 +1870,16 @@ function App() {
             <section className="page-lead fridge-lead">
               <span className="screen-kicker"><Leaf size={14}/> BẾP NHÀ MÌNH</span>
               <h1>Tủ lạnh</h1>
-              <p>Quản lý đồ đang có<br/>và tìm món hợp với bữa ăn nhà mình.</p>
+              <p>Thêm nguyên liệu, tìm món và theo dõi hạn dùng.</p>
             </section>
-            <section className="fridge-summary" aria-label="Tóm tắt tủ lạnh">
-              <div className="fridge-summary-heading"><span className="fridge-summary-icon"><Apple size={20}/></span><div><b>Trong tủ hiện có</b><small>{stock.length} nguyên liệu đã thêm</small></div><button onClick={() => setPickerOpen(true)}>+ Thêm món</button></div>
+            {stock.length > 0 && <section className="fridge-summary" aria-label="Tóm tắt tủ lạnh">
+              <div className="fridge-summary-heading"><span className="fridge-summary-icon"><Apple size={20}/></span><div><b>Trong tủ</b></div></div>
               <div className="fridge-summary-stats">
                 <button className="fridge-stat urgent" onClick={() => showTab("use_soon")}><small>CẦN DÙNG SỚM</small><b>{useSoonItems.length}</b><span>{useSoonItems.length ? "nguyên liệu" : "chưa có"}</span></button>
                 <button className="fridge-stat ready" onClick={() => showTab("ready")}><small>GỢI Ý NẤU</small><b>{recommendationsByCategory.ready.length}</b><span>đủ loại nguyên liệu</span></button>
               </div>
-              {stock.length > 0 && <button className="fridge-summary-cta" onClick={showBestTab}><CookingPot size={18}/> Tìm cách nấu từ tủ lạnh <ArrowRight size={17}/></button>}
-            </section>
+              <button className="fridge-summary-cta" onClick={showBestTab}><CookingPot size={18}/> Tìm món từ tủ lạnh <ArrowRight size={17}/></button>
+            </section>}
             {useSoonItems.length > 0 && <section className="fridge-rescue-panel"><div><span className="rescue-symbol"><Clock size={18}/></span><span><b>Cần ưu tiên dùng sớm</b><small>Nấu Đại Đi sẽ đưa các món này lên trước trong gợi ý.</small></span></div><div className="rescue-items">{useSoonItems.map((item) => { const name = ingredients.find((entry) => entry.id === item.id)?.name ?? item.name ?? item.id; return <span className="rescue-item" key={item.id}>{name}<small>{item.fresh === "urgent" ? "Dùng ngay" : item.expiresAt ? `Hạn ${item.expiresAt}` : "Sắp hết hạn"}</small></span>; })}</div></section>}
             {recommendationsByCategory.ready.length > 0 && <section className="fridge-ready-section" aria-labelledby="fridge-ready-title">
               <div className="fridge-ready-heading"><div><h2 id="fridge-ready-title">Có thể nấu từ tủ</h2><p>Khớp theo tên nguyên liệu; kiểm tra lượng và tình trạng trước khi nấu.</p></div><button onClick={() => showTab("ready")}>Tất cả <ChevronRight size={15}/></button></div>
@@ -1898,7 +1895,7 @@ function App() {
               })}</div>
             </section>}
             <section className="input-card">
-              <div className="add-heading"><div><b>Thêm nguyên liệu</b><small>Chạm để chọn · {ingredients.length} nguyên liệu</small></div><button type="button" className={pickerOpen ? "picker-toggle active" : "picker-toggle"} onClick={() => setPickerOpen((v) => !v)} aria-expanded={pickerOpen} aria-controls="ingredient-picker"><Grid2X2 size={16}/>{pickerOpen ? "Thu gọn" : "Chọn nguyên liệu"}</button></div>
+              <div className="add-heading"><div><b>Thêm vào tủ</b></div><button type="button" className={pickerOpen ? "picker-toggle active" : "picker-toggle"} onClick={() => setPickerOpen((v) => !v)} aria-expanded={pickerOpen} aria-controls="ingredient-picker"><Grid2X2 size={16}/>{pickerOpen ? "Thu gọn" : "Chọn nhanh"}</button></div>
               <label className="searchbox">
                 <Search size={19} />
                 <input
@@ -1932,32 +1929,23 @@ function App() {
               )}
               {pickerOpen && !query && (
                 <div className="ingredient-picker" id="ingredient-picker">
-                  <div className="picker-empty-state"><span className="picker-empty-icon"><Search size={17}/></span><div><b>Tìm trong {ingredients.length.toLocaleString("vi-VN")} nguyên liệu</b><small>Nhập tên vào ô tìm kiếm để xem thêm nguyên liệu.</small></div></div>
-                  <section className="picker-popular"><div className="picker-section-head"><b>⚡ Nguyên liệu phổ biến</b><span>{quickPickerItems.length} món · chạm để chọn</span></div><div className="ingredient-chip-list">{quickPickerItems.map((item) => {
+                  <section className="picker-popular"><div className="picker-section-head"><b>⚡ Chọn nhanh</b></div><div className="ingredient-chip-list">{quickPickerItems.map((item) => {
                     const selected = ids.has(item.id);
                     return <button type="button" key={item.id} className={`ingredient-chip${selected ? " selected" : ""}`} aria-pressed={selected} onClick={() => selected ? setStock((stockItems) => stockItems.filter((stockItem) => stockItem.id !== item.id)) : add(item.id)}><IngredientVisual name={item.name} emoji={item.emoji} className="ingredient-chip-emoji"/><span>{item.name}</span>{selected ? <Check size={13}/> : <Plus size={13}/>}</button>;
                   })}</div></section>
                 </div>
               )}
             </section>
-            <section className="pantry-head">
+            {stock.length > 0 && <section className="pantry-head">
               <h2>Nguyên liệu đang có <span className="count">{stock.length}</span></h2>
-              <button
-                className="text-button"
-                onClick={() => setPage("settings")}
-              >
-                <SlidersHorizontal size={15} /> Tùy chỉnh
-              </button>
-            </section>
-            {stock.length === 0 ? (
+              <button className="text-button" onClick={() => setPage("settings")}><SlidersHorizontal size={15} /> Tùy chỉnh</button>
+            </section>}
+            {stock.length === 0 && !pickerOpen ? (
               <div className="empty-pantry">
                 <span className="empty-icon"><CookingPot size={23} aria-hidden="true" /></span>
-                <div>
-                  <b>Tủ lạnh đang chờ bạn</b>
-                  <p>Thêm vài nguyên liệu để tìm món ngon nhé.</p>
-                </div>
+                <b>Tủ lạnh đang trống</b>
               </div>
-            ) : (
+            ) : stock.length > 0 ? (
               <div className="pantry">
                 {stock.map((item) => {
                   const ing = ingredients.find((x) => x.id === item.id);
@@ -2010,13 +1998,11 @@ function App() {
                   );
                 })}
               </div>
-            )}
-            <div className="expiry-note">
+            ) : null}
+            {stock.length > 0 && <div className="expiry-note">
               <span>⏰</span>
-              <p>
-                <b>Gợi ý:</b> Thêm ngày hết hạn hoặc chọn “Sắp hết hạn” để ưu tiên dùng trước.
-              </p>
-            </div>
+              <p>Thêm hạn dùng để ưu tiên nguyên liệu sắp hết hạn.</p>
+            </div>}
           </>
         )}
         {page === "home" && (
@@ -2082,7 +2068,7 @@ function App() {
                 <label className="recommendation-matched-toggle"><input id="fridge-recommendation-matched-only" name="fridge-recommendation-matched-only" type="checkbox" checked={recommendationMatchedOnly} onChange={(event) => setRecommendationMatchedOnly(event.target.checked)}/> Có ít nhất 1 nguyên liệu trong tủ</label>
                 </div>
               </details>
-              <p className="recommendation-result-count" aria-live="polite">{filteredRecommendations.length} món phù hợp bộ lọc · đang hiển thị {Math.min(recommendationLimit, filteredRecommendations.length)}</p>
+              <p className="recommendation-result-count" aria-live="polite">{filteredRecommendations.length} món phù hợp</p>
             </section>
             {filteredRecommendations.length === 0 ? (
               <div className="no-results">
@@ -2110,7 +2096,7 @@ function App() {
             <div className="library-tools">
               <label className="searchbox library-search"><Search size={17}/><input value={libraryQuery} onChange={(event) => setLibraryQuery(event.target.value)} placeholder="Tìm món hoặc nguyên liệu…"/></label>
               <details className="explore-filter-menu"><summary aria-label="Mở bộ lọc"><SlidersHorizontal size={19}/></summary><div className="explore-filter-popover">
-                <label><span>Nguồn công thức</span><select aria-label="Lọc theo nguồn công thức" value={librarySourceFilter} onChange={(event) => setLibrarySourceFilter(event.target.value as typeof librarySourceFilter)}><option value="all">Tất cả nguồn</option><option value="internal">Nội bộ</option><option value="copper">Copper</option><option value="dinhduong2598">Dinh dưỡng 2598</option><option value="mnnm">Món Ngon Mỗi Ngày{mnnmCatalog ? ` (${mnnmCatalog.length.toLocaleString("vi-VN")})` : ""}</option><option value="knorr">Knorr Việt Nam{knorrRecipes ? ` (${knorrRecipes.length.toLocaleString("vi-VN")})` : ""}</option><option value="other">Nguồn khác</option></select></label>
+                <label><span>Nguồn công thức</span><select aria-label="Lọc theo nguồn công thức" value={librarySourceFilter} onChange={(event) => setLibrarySourceFilter(event.target.value as typeof librarySourceFilter)}><option value="all">Tất cả nguồn</option><option value="internal">Nội bộ</option><option value="copper">Copper</option><option value="dinhduong2598">Dinh dưỡng 2598</option><option value="mnnm">Món Ngon Mỗi Ngày</option><option value="knorr">Knorr Việt Nam</option><option value="other">Nguồn khác</option></select></label>
                 <label><span>Hướng dẫn</span><select aria-label="Lọc trạng thái hướng dẫn" value={libraryStatus} onChange={(event) => setLibraryStatus(event.target.value)}><option>Tất cả</option><option value="full_recipe">Có hướng dẫn</option><option value="ingredients_only">Chỉ có nguyên liệu</option><option value="catalog_only">Chỉ có tên món</option></select></label>
                 <label className="library-diet" title="Chỉ hiện món có dữ liệu hướng dẫn và không có nguyên liệu thuộc nhóm thịt hoặc hải sản."><input type="checkbox" checked={libraryDiet} onChange={(event) => setLibraryDiet(event.target.checked)}/> Không thịt/hải sản</label>
                 <button type="button" className="text-button" onClick={() => { setLibraryQuery(""); setLibraryCategory("Tất cả"); setLibrarySourceFilter("all"); setLibraryStatus("Tất cả"); setLibraryDiet(false); setLibraryQuickOnly(false); setSourceAgeFilter(""); setSourceIngredientMode(""); }}>Xóa bộ lọc</button>
@@ -2134,59 +2120,54 @@ function App() {
               if (chip.quick) setLibraryQuickOnly((current) => !current);
               if (chip.diet) setLibraryDiet((current) => !current);
             }}>{chip.label}</button>)}</div>
-            <div className="explore-category-heading"><div><span className="home-section-kicker">TÌM THEO NHÓM MÓN</span><h2>Món ngon theo cách nấu</h2></div><button className="text-button" onClick={() => { setLibraryCategory("Tất cả"); setLibraryQuery(""); }}>Tất cả</button></div>
+            <div className="explore-category-heading"><h2>Món ngon theo cách nấu</h2><button className="text-button" onClick={() => { setLibraryCategory("Tất cả"); setLibraryQuery(""); }}>Tất cả</button></div>
             <div className="category-strip library-categories explore-method-grid">{exploreMethodCategories.map((category) => {
               const Icon = category === "Món xào" ? CookingPot : category === "Món ăn nhẹ" || category === "Món chay" ? Leaf : category === "Món nước" || category === "Món canh" ? UtensilsCrossed : ChefHat;
               const title = category === "Món canh" ? "Canh ngọt mát" : category === "Món kho" ? "Kho đậm đà" : category === "Món xào" ? "Gỏi & Rau xào" : category === "Món nước" ? "Bún & Phở nước" : category === "Món ăn nhẹ" ? "Cuốn & Chấm" : "Món chay thanh";
               const subtitle = category === "Món canh" ? "Canh cua, chua" : category === "Món kho" ? "Cá tộ, kho dừa" : category === "Món xào" ? "Muống xào, rau" : category === "Món nước" ? "Bún bò, phở gà" : category === "Món ăn nhẹ" ? "Gỏi cuốn, xèo" : "Đậu om, nấm";
               return <button key={category} className={libraryCategory === category ? "chosen" : ""} onClick={() => setLibraryCategory((current) => current === category ? "Tất cả" : category)} aria-pressed={libraryCategory === category}><span className={`explore-method-icon explore-method-icon-${category === "Món canh" ? "soup" : category === "Món kho" ? "braise" : category === "Món xào" ? "stir" : category === "Món nước" ? "noodle" : category === "Món ăn nhẹ" ? "roll" : "vegan"}`}><Icon size={19}/></span><span>{title}</span><small>{subtitle}</small></button>;
             })}</div>
-            <p className="library-count" aria-live="polite">{libraryResults.length.toLocaleString("vi-VN")} món phù hợp · đang hiển thị {Math.min(libraryLimit, libraryResults.length)}{mnnmLoad === "loading" ? " · đang tải danh mục Món Ngon Mỗi Ngày…" : mnnmLoad === "error" ? " · chưa tải được danh mục MNMN" : ""}{knorrLoad === "loading" ? " · đang tải công thức Knorr…" : knorrLoad === "error" ? " · chưa tải được danh mục Knorr" : ""}{sourceCatalogLoad === "loading" ? " · đang tải thêm món Dinh dưỡng 2598…" : sourceCatalogLoad === "error" ? " · chưa tải được danh mục Dinh dưỡng 2598" : ""}</p>
             {visibleLibraryResults.length ? <div className="recipe-list library-list">{visibleLibraryResults.map((group) => {
               const entry = group.primary;
-              const variantLabel = group.variants.length ? ` · ${group.variants.length} nguồn/biến thể xem trong chi tiết` : "";
               if (entry.kind === "recipe") {
                 const recipe = entry.recipe;
                 const image = recipeImageFor(recipe.id);
                 const aiIllustration = image?.imageType === "ai_illustration";
-                const publishedDate = recipe.publishedAt ? new Date(recipe.publishedAt) : null;
-                const publishedLabel = publishedDate && !Number.isNaN(publishedDate.valueOf()) ? ` · Đăng ${publishedDate.toLocaleDateString("vi-VN", { day: "numeric", month: "short", year: "numeric" })}` : "";
-                const sourceLabel = recipe.source.title === "Knorr Việt Nam" ? "Knorr Việt Nam" : aiIllustration ? "Ảnh minh họa AI" : "";
-                return <button className="library-card" key={entry.key} onClick={() => openLibraryCandidate(group)}><span className={`library-emoji${image || recipe.imageUrl ? " has-recipe-image" : ""}`} data-emoji={recipe.emoji}>{image ? <img src={image.cardImagePath ?? image.imagePath} alt={aiIllustration ? `Ảnh minh họa AI cho món ${recipe.name}` : `Ảnh món ${recipe.name}`} loading="lazy" decoding="async" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/> : recipe.imageUrl ? <img src={recipe.imageUrl} alt={`Ảnh món ${recipe.name}`} loading="lazy" decoding="async" onLoad={(event) => preferHigherResolutionImage(event, recipe.imageFallbacks)} onError={(event) => fallbackRecipeSourceImage(event, recipe)}/> : recipe.emoji}</span><span className="library-card-content"><span className="library-card-title">{recipe.name}</span><span className="library-card-meta">{sourceLabel}{publishedLabel}{sourceLabel || publishedLabel ? " · " : ""}{recipe.dataStatus === "full_recipe" ? "Có hướng dẫn · chưa xác minh" : "Chỉ có nguyên liệu · chưa có hướng dẫn"}{recipe.totalTime ? ` · ${recipe.source.title.startsWith("Copper") ? "" : "~"}${recipe.totalTime} phút` : ""} · {recipe.ingredients.length} nguyên liệu{variantLabel}</span><span className="library-card-cta">Xem chi tiết <ChevronRight size={16}/></span></span></button>;
+                const recipeStatus = recipe.dataStatus === "full_recipe" ? recipe.verificationStatus === "verified" ? "Đã xác minh" : "Chưa xác minh" : recipe.dataStatus === "ingredients_only" ? "Thiếu hướng dẫn" : "Thiếu dữ liệu";
+                const meta = [recipe.totalTime ? `${recipe.totalTime} phút` : "", `${recipe.ingredients.length} nguyên liệu`, recipeStatus].filter(Boolean).join(" · ");
+                return <button className="library-card" key={entry.key} onClick={() => openLibraryCandidate(group)}><span className={`library-emoji${image || recipe.imageUrl ? " has-recipe-image" : ""}`} data-emoji={recipe.emoji}>{image ? <img src={image.cardImagePath ?? image.imagePath} alt={aiIllustration ? `Ảnh minh họa AI cho món ${recipe.name}` : `Ảnh món ${recipe.name}`} loading="lazy" decoding="async" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/> : recipe.imageUrl ? <img src={recipe.imageUrl} alt={`Ảnh món ${recipe.name}`} loading="lazy" decoding="async" onLoad={(event) => preferHigherResolutionImage(event, recipe.imageFallbacks)} onError={(event) => fallbackRecipeSourceImage(event, recipe)}/> : recipe.emoji}</span><span className="library-card-content"><span className="library-card-title">{recipe.name}</span><span className="library-card-meta">{aiIllustration ? "Ảnh AI · " : ""}{meta}</span><span className="library-card-cta">Xem chi tiết <ChevronRight size={16}/></span></span></button>;
               }
               if (entry.kind === "mnnm") {
                 const item = entry.item;
                 const minutes = durationMinutes(item.total_time);
-                const publishedDate = item.published_at ? new Date(item.published_at) : null;
-                const publishedLabel = publishedDate && !Number.isNaN(publishedDate.valueOf()) ? publishedDate.toLocaleDateString("vi-VN", { day: "numeric", month: "short", year: "numeric" }) : "";
-                return <button className="library-card mnnm-recipe-card" key={entry.key} onClick={() => openLibraryCandidate(group)}><span className={`library-emoji${item.image_url ? " has-recipe-image" : ""}`} data-emoji="🍲">{item.image_url ? <img src={item.image_url} alt={`Ảnh món ${item.name}`} loading="lazy" decoding="async" onLoad={(event) => preferHigherResolutionImage(event, item.image_fallbacks)} onError={(event) => fallbackMnnmImage(event, item)}/> : "🍲"}</span><span className="library-card-content"><span className="library-card-title">{item.name}</span><span className="library-card-meta">Món Ngon Mỗi Ngày{publishedLabel ? ` · Đăng ${publishedLabel}` : ""} · {item.has_instructions ? "Có hướng dẫn nguồn · chưa xác minh độc lập" : item.has_ingredients ? "Có nguyên liệu · thiếu hướng dẫn" : "Thiếu dữ liệu chế biến"}{minutes ? ` · ~${minutes} phút` : ""} · {item.ingredient_count} nguyên liệu{variantLabel}</span><span className="library-card-cta">Xem công thức &amp; cách nấu <ChevronRight size={16}/></span></span></button>;
+                const status = item.has_instructions ? "Chưa xác minh" : item.has_ingredients ? "Thiếu hướng dẫn" : "Thiếu dữ liệu";
+                const meta = [minutes ? `${minutes} phút` : "", `${item.ingredient_count} nguyên liệu`, status].filter(Boolean).join(" · ");
+                return <button className="library-card mnnm-recipe-card" key={entry.key} onClick={() => openLibraryCandidate(group)}><span className={`library-emoji${item.image_url ? " has-recipe-image" : ""}`} data-emoji="🍲">{item.image_url ? <img src={item.image_url} alt={`Ảnh món ${item.name}`} loading="lazy" decoding="async" onLoad={(event) => preferHigherResolutionImage(event, item.image_fallbacks)} onError={(event) => fallbackMnnmImage(event, item)}/> : "🍲"}</span><span className="library-card-content"><span className="library-card-title">{item.name}</span><span className="library-card-meta">{meta}</span><span className="library-card-cta">Xem công thức &amp; cách nấu <ChevronRight size={16}/></span></span></button>;
               }
               const item = entry.item;
               const image = recipeImageFor(entry.key);
               const aiIllustration = image?.imageType === "ai_illustration";
               const authoredSupplement = getSourceInstructionSupplement(item.id);
-              const status = item.has_instructions ? "Có hướng dẫn nguồn" : authoredSupplement ? "Có hướng dẫn biên soạn · cần rà soát" : item.has_ingredients ? "Chỉ có nguyên liệu · chưa có hướng dẫn" : "Chưa có hướng dẫn chế biến";
-              const quality = item.quality_status === "complete" ? "Đủ dữ liệu theo kiểm tra tự động" : item.quality_status === "needs_review" ? "Cần rà soát" : item.quality_status === "unmatched" ? "Chưa ghép chắc chắn" : "Thiếu dữ liệu nguồn";
-              const meta = [item.category ?? item.category_labels?.[0] ?? "Nhóm món chưa rõ", item.variant_count && item.variant_count > 1 ? `${item.variant_count} biến thể` : "", item.ingredients ? `${item.ingredients.length} nguyên liệu` : "Thiếu danh sách nguyên liệu", status, quality].filter(Boolean).join(" · ");
-              return <button className="library-card source-recipe-card" key={entry.key} onClick={() => openLibraryCandidate(group)}><span className={`library-emoji${image ? " has-recipe-image" : ""}`} data-emoji="🍲">{image ? <img src={image.cardImagePath ?? image.imagePath} alt={aiIllustration ? `Ảnh minh họa AI cho món ${item.name}` : `Ảnh món ${item.name}`} loading="lazy" decoding="async" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/> : "🍲"}</span><span className="library-card-content"><span className="library-card-title">{item.name}</span><span className="library-card-meta">{aiIllustration ? "Ảnh minh họa AI · " : ""}{meta}{variantLabel}</span><span className="library-card-cta">Xem chi tiết <ChevronRight size={16}/></span></span></button>;
+              const status = authoredSupplement ? "Cần rà soát" : item.has_instructions ? "Chưa xác minh" : item.has_ingredients ? "Thiếu hướng dẫn" : "Thiếu dữ liệu";
+              const meta = [item.ingredients ? `${item.ingredients.length} nguyên liệu` : "", status].filter(Boolean).join(" · ");
+              return <button className="library-card source-recipe-card" key={entry.key} onClick={() => openLibraryCandidate(group)}><span className={`library-emoji${image ? " has-recipe-image" : ""}`} data-emoji="🍲">{image ? <img src={image.cardImagePath ?? image.imagePath} alt={aiIllustration ? `Ảnh minh họa AI cho món ${item.name}` : `Ảnh món ${item.name}`} loading="lazy" decoding="async" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/> : "🍲"}</span><span className="library-card-content"><span className="library-card-title">{item.name}</span><span className="library-card-meta">{aiIllustration ? "Ảnh AI · " : ""}{meta}</span><span className="library-card-cta">Xem chi tiết <ChevronRight size={16}/></span></span></button>;
             })}</div> : sourceCatalogLoad === "loading" || mnnmLoad === "loading" || knorrLoad === "loading" ? <p role="status" className="source-catalog-state">Đang tải danh sách món…</p> : <div className="no-results"><span>🔎</span><h3>Không tìm thấy món phù hợp</h3><p>Thử tên món hoặc nguyên liệu khác, hoặc bỏ bớt bộ lọc.</p></div>}
             {libraryResults.length > libraryLimit && <button className="recommendation-load-more" onClick={() => setLibraryLimit((current) => current + 30)}>Xem thêm {Math.min(30, libraryResults.length - libraryLimit)} món</button>}
-            <p className="dataset-attribution">Công thức và ảnh từ <a href="https://monngonmoingay.com/" target="_blank" rel="noreferrer">Món Ngon Mỗi Ngày</a> và <a href="https://www.knorr.com/vn/cong-thuc-nau-an.html" target="_blank" rel="noreferrer">Knorr Việt Nam</a>; mở từng món để đối chiếu nguồn. Dữ liệu nguồn chưa được rà soát thủ công. Copper: <a href="https://copperapp.app/study/what-the-world-cooks.html" target="_blank" rel="noreferrer">CC BY 4.0 · Cook the World</a>. Mục chỉ có nguyên liệu chưa được trình bày như công thức hoàn chỉnh.</p>
+            <p className="dataset-attribution">Nguồn và tình trạng công thức có trong chi tiết món. Ảnh Copper theo <a href="https://copperapp.app/study/what-the-world-cooks.html" target="_blank" rel="noreferrer">CC BY 4.0</a>.</p>
             {sourceCatalogLoad === "error" && <p role="alert" className="source-catalog-state">Chưa tải được thêm món Dinh dưỡng 2598. <button className="text-button" onClick={() => setSourceCatalogRetry((current) => current + 1)}>Thử tải lại</button></p>}
             {mnnmLoad === "error" && <p role="alert" className="source-catalog-state">Chưa tải được danh sách món MNMN. <button className="text-button" onClick={() => { setMnnmCatalog(null); setMnnmRetry((current) => current + 1); }}>Thử tải lại</button></p>}
             {knorrLoad === "error" && <p role="alert" className="source-catalog-state">Chưa tải được danh sách món Knorr. <button className="text-button" onClick={() => { setKnorrRecipes(null); setKnorrRetry((current) => current + 1); }}>Thử tải lại</button></p>}
-            <p className="dataset-attribution">Danh mục món gồm công thức nội bộ, Copper và <a href="https://dinhduong2598.food/mon-an" target="_blank" rel="noreferrer">Dinh dưỡng 2598 <ExternalLink size={12}/></a>.</p>
           </>
         )}
         {page === "trending" && (
           <>
             <section className="trending-intro">
               <div className="recipe-intro-icon"><BookOpen size={21}/></div>
-              <div><b>Video hướng dẫn nấu ăn</b><p>{trendingCatalogStatus === "ready" ? `${trendingVideos.length} video trong kho · thứ tự được tạo riêng cho phiên này${trendingCatalogUpdatedAt ? ` · đồng bộ ${new Date(trendingCatalogUpdatedAt).toLocaleDateString("vi-VN")}` : ""}. Metadata được lọc tự động; nội dung clip chưa được xem thủ công.` : "Vuốt để xem từng clip; lưu clip yêu thích hoặc mở nguồn YouTube."}</p></div>
+              <div><b>Video hướng dẫn nấu ăn</b><p>Vuốt để xem · lưu clip để xem lại. Một số clip sẽ mở trên YouTube.</p></div>
             </section>
             {trendingCatalogStatus === "loading" && <div className="video-feed-state" role="status">Đang tải danh sách video…</div>}
             {trendingCatalogStatus === "error" && <div className="video-feed-state" role="alert"><p>Chưa tải được catalog video. Kiểm tra mạng rồi thử lại.</p><button onClick={() => setTrendingCatalogRetry((count) => count + 1)}>Thử lại</button></div>}
-            {trendingCatalogStatus === "ready" && !trendingVideos.length && <div className="video-feed-state"><p>Chưa có clip nào được xác minh gần đây. Catalog sẽ được cập nhật theo lịch đồng bộ.</p></div>}
+            {trendingCatalogStatus === "ready" && !trendingVideos.length && <div className="video-feed-state"><p>Chưa có video nấu ăn.</p></div>}
             {trendingCatalogStatus === "ready" && trendingVideos.length > 0 && <>
               <div ref={trendingFeedRef} className="trending-list trend-feed" aria-label="Luồng video hướng dẫn nấu ăn" onScroll={(event) => {
                 const element = event.currentTarget;
@@ -2199,22 +2180,20 @@ function App() {
                   <div className="trend-player">
                     {playing && !failed
                       ? <iframe className="trend-youtube-frame" ref={(element) => { youtubePlayerContainerRef.current = element; }} src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.videoId)}?enablejsapi=1&autoplay=1&playsinline=1&rel=0&origin=${encodeURIComponent(window.location.origin)}`} title={`Video hướng dẫn nấu ăn: ${video.title}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/>
-                      : <button className="trend-player-poster" onClick={() => { if (failed) window.open(video.videoUrl, "_blank", "noopener,noreferrer"); else setActiveTrendingVideoId(video.videoId); }} aria-label={failed ? `Mở video gốc: ${video.title}` : `Phát video: ${video.title}`}><img src={`https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/hqdefault.jpg`} alt="" loading={index < 2 ? "eager" : "lazy"} onError={(event) => { event.currentTarget.style.visibility = "hidden"; }}/><span className="trend-play-button">{failed ? <ExternalLink size={25}/> : <Play size={25} fill="currentColor"/>}</span><small>{failed ? "Mở YouTube" : video.availabilityStatus === "unknown" ? "Chưa xác minh nhúng" : "Chạm để xem"}</small></button>}
+                      : <button className="trend-player-poster" onClick={() => { if (failed) window.open(video.videoUrl, "_blank", "noopener,noreferrer"); else setActiveTrendingVideoId(video.videoId); }} aria-label={failed ? `Mở video gốc: ${video.title}` : `Phát video: ${video.title}`}><img src={`https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/hqdefault.jpg`} alt="" loading={index < 2 ? "eager" : "lazy"} onError={(event) => { event.currentTarget.style.visibility = "hidden"; }}/><span className="trend-play-button">{failed ? <ExternalLink size={25}/> : <Play size={25} fill="currentColor"/>}</span><small>{failed ? "Mở YouTube" : "Chạm để xem"}</small></button>}
                   </div>
-                  <div className="trend-card-body"><div className="trend-card-meta"><small>{video.creatorName || "YouTube"} · {video.publishedAt ? new Date(video.publishedAt).toLocaleDateString("vi-VN") : "Ngày đăng không có"}{video.durationSeconds ? ` · ${Math.floor(video.durationSeconds / 60)} phút` : ""}</small><span>{index + 1} / {trendingVideos.length}</span></div><h3>{video.title}</h3><p>{video.moderationStatus === "accepted" ? "Lọc tự động từ metadata · chưa xem thủ công" : "Cần xem lại nội dung · chưa xác minh"}</p>{video.availabilityStatus === "unknown" && <small>Chưa xác minh khả năng nhúng · có thể clip không phát được.</small>}{videoHistoryMessage && playing && <small role="status">{videoHistoryMessage}</small>}{index === visibleTrendingVideos.length - 1 && visibleTrendingCount >= trendingVideos.length && <small className="video-end-message">Đã xem hết kho video hiện có. Clip mới sẽ xuất hiện sau lần đồng bộ tiếp theo.</small>}</div>
+                  <div className="trend-card-body"><div className="trend-card-meta"><small>{video.creatorName || "YouTube"}{video.durationSeconds ? ` · ${Math.floor(video.durationSeconds / 60)} phút` : ""}</small><span>{index + 1} / {trendingVideos.length}</span></div><h3>{video.title}</h3><small>{video.moderationStatus === "accepted" ? "Chưa xem thủ công" : "Cần xem lại"}</small>{videoHistoryMessage && playing && <small role="status">{videoHistoryMessage}</small>}{index === visibleTrendingVideos.length - 1 && visibleTrendingCount >= trendingVideos.length && <small className="video-end-message">Đã xem hết video.</small>}</div>
                   <div className="trend-card-actions"><button className={`trend-save-button${saved ? " is-saved" : ""}`} onClick={() => toggleSavedTrendingVideo(video)} aria-pressed={saved}><Bookmark size={16} fill={saved ? "currentColor" : "none"}/><span>{saved ? "Đã lưu" : "Lưu"}</span></button><a className="trend-original" href={video.videoUrl} target="_blank" rel="noreferrer" aria-label="Mở video trên YouTube"><ExternalLink size={18}/></a></div>
                 </article>;
               })}</div>
             </>}
-            <section className="pref-section add-video-section"><h3>Lưu video muốn thử</h3><p className="pref-help">Dán liên kết YouTube, TikTok hoặc Facebook Reel. Link chỉ lưu trên thiết bị này.</p><label className="video-field">Liên kết video<input value={videoUrlDraft} onChange={(event) => { setVideoUrlDraft(event.target.value); setVideoFormError(""); }} placeholder="https://…" inputMode="url" /></label><label className="video-field">Ghi chú (không bắt buộc)<input value={videoNoteDraft} onChange={(event) => setVideoNoteDraft(event.target.value)} placeholder="Món muốn thử, thay đổi nguyên liệu…" /></label>{videoFormError && <p className="form-error" role="alert">{videoFormError}</p>}<button className="primary-small" onClick={saveVideoLink}>Lưu link video</button></section>
+            <section className="pref-section add-video-section"><h3>Lưu video muốn thử</h3><p className="pref-help">Lưu link YouTube, TikTok hoặc Reels để xem sau.</p><label className="video-field">Liên kết video<input value={videoUrlDraft} onChange={(event) => { setVideoUrlDraft(event.target.value); setVideoFormError(""); }} placeholder="https://…" inputMode="url" /></label><label className="video-field">Ghi chú (không bắt buộc)<input value={videoNoteDraft} onChange={(event) => setVideoNoteDraft(event.target.value)} placeholder="Món muốn thử, thay đổi nguyên liệu…" /></label>{videoFormError && <p className="form-error" role="alert">{videoFormError}</p>}<button className="primary-small" onClick={saveVideoLink}>Lưu link video</button></section>
           </>
         )}
         {page === "shopping" && <>
           <section className="shopping-overview">
-            <span className="screen-kicker"><ShoppingBasket size={14}/> CHỢ HÔM NAY</span>
             <h1>Sổ đi chợ nhà mình</h1>
-            <p>Ghi lại nguyên liệu cần mua; danh sách được lưu trên thiết bị này.</p>
-            <div className="shopping-counts"><div><small>CẦN MUA</small><b>{shoppingItems.filter((item) => !item.checked).length}</b></div><div><small>ĐÃ ĐÁNH DẤU</small><b>{shoppingItems.filter((item) => item.checked).length}</b></div></div>
+            {shoppingItems.length > 0 && <div className="shopping-counts"><div><small>CẦN MUA</small><b>{shoppingItems.filter((item) => !item.checked).length}</b></div><div><small>ĐÃ ĐÁNH DẤU</small><b>{shoppingItems.filter((item) => item.checked).length}</b></div></div>}
             <form className="shopping-add-form" onSubmit={(event) => { event.preventDefault(); addShoppingItem(shoppingQuery); }}>
               <label className="searchbox"><Search size={18}/><input aria-label="Thêm nguyên liệu vào sổ đi chợ" value={shoppingQuery} onChange={(event) => setShoppingQuery(event.target.value)} placeholder="Thêm nguyên liệu cần mua…"/></label>
               <button type="submit" disabled={!shoppingQuery.trim()}><Plus size={17}/> Thêm</button>
@@ -2223,13 +2202,13 @@ function App() {
           {stock.length > 0 && <p className="shopping-pantry-note"><CheckCircle2 size={16}/> Các nguyên liệu đã có trong tủ được đánh dấu để tránh mua trùng.</p>}
           {shoppingItems.length ? <div className="shopping-groups">
             {[...new Set(shoppingItems.map((item) => shoppingCategoryFor(item.name)))].map((category) => <section className="shopping-group" key={category}>
-              <div className="shopping-group-heading"><h2>{category}</h2><span>{shoppingItems.filter((item) => shoppingCategoryFor(item.name) === category && !item.checked).length} cần mua</span></div>
+              <div className="shopping-group-heading"><h2>{category}</h2></div>
               {shoppingItems.filter((item) => shoppingCategoryFor(item.name) === category).map((item) => {
                 const itemIngredientId = resolveIngredientId(item.name, ingredientIndex);
                 const isInFridge = stock.some((entry) => entry.id === itemIngredientId || canonical(entry.name ?? nameFor(entry.id)) === canonical(item.name));
                 return <article className={`shopping-row${item.checked ? " is-checked" : ""}`} key={item.id}>
                   <button className="shopping-check" onClick={() => setShoppingItems((items) => items.map((entry) => entry.id === item.id ? { ...entry, checked: !entry.checked } : entry))} aria-label={item.checked ? `Bỏ đánh dấu ${item.name}` : `Đánh dấu đã mua ${item.name}`} aria-pressed={item.checked}>{item.checked ? <Check size={16}/> : <span/>}</button>
-                  <div className="shopping-item-copy"><b>{item.name}</b><small>{item.quantity ? `Cần ${item.quantity}${item.unit ? ` ${item.unit}` : ""}` : item.recipeId && recipeById.get(item.recipeId) ? `Từ món ${recipeById.get(item.recipeId)!.name} · lượng chưa có trong dữ liệu` : "Chưa ghi số lượng"}{isInFridge ? " · Đã có trong tủ" : ""}</small></div>
+                  <div className="shopping-item-copy"><b>{item.name}</b><small>{item.quantity ? `${item.quantity}${item.unit ? ` ${item.unit}` : ""}` : item.recipeId && recipeById.get(item.recipeId) ? `Từ ${recipeById.get(item.recipeId)!.name} · chưa rõ lượng` : "Chưa rõ lượng"}{isInFridge ? " · Đã có trong tủ" : ""}</small></div>
                   <details className="shopping-item-edit"><summary aria-label={`Sửa số lượng ${item.name}`}>Sửa</summary><div className="shopping-edit-fields"><label>Số lượng<input inputMode="decimal" aria-label={`Số lượng cần mua ${item.name}`} value={item.quantity} onChange={(event) => setShoppingItems((items) => items.map((entry) => entry.id === item.id ? { ...entry, quantity: event.target.value } : entry))}/></label><label>Đơn vị<input aria-label={`Đơn vị cần mua ${item.name}`} value={item.unit} onChange={(event) => setShoppingItems((items) => items.map((entry) => entry.id === item.id ? { ...entry, unit: event.target.value } : entry))}/></label></div></details>
                   {item.recipeId && <button className="shopping-source-link" onClick={() => { const recipe = recipeById.get(item.recipeId!); if (recipe) openRecipe(recipe); }} aria-label={`Mở món liên quan đến ${item.name}`}><ChevronRight size={17}/></button>}
                   <button className="shopping-remove" onClick={() => setShoppingItems((items) => items.filter((entry) => entry.id !== item.id))} aria-label={`Xóa ${item.name} khỏi sổ đi chợ`}><X size={16}/></button>
@@ -2237,7 +2216,7 @@ function App() {
               })}
             </section>)}
             <div className="shopping-footer-actions">{shoppingItems.some((item) => item.checked) && <button className="shopping-clear" onClick={() => setShoppingItems((items) => items.filter((item) => !item.checked))}>Xóa món đã đánh dấu</button>}<button className="shopping-fridge-button" onClick={() => setPage("fridge")}><Apple size={17}/> Mở tủ lạnh <ArrowRight size={16}/></button></div>
-          </div> : <div className="shopping-empty"><span><ShoppingBasket size={24}/></span><h2>Sổ đi chợ đang trống</h2><p>Mở một món và thêm nguyên liệu còn thiếu vào đây, hoặc tự ghi món cần mua.</p><button onClick={() => setPage("explore")}>Tìm món để nấu <ArrowRight size={16}/></button></div>}
+          </div> : <div className="shopping-empty"><span><ShoppingBasket size={24}/></span><h2>Sổ đi chợ đang trống</h2><button onClick={() => setPage("explore")}>Tìm món để nấu <ArrowRight size={16}/></button></div>}
         </>}
         {page === "cook" && cookingRecipe && <section className="cook-mode-screen" aria-label={`Đang nấu ${cookingRecipe.name}`}>
           <section className="cook-progress-panel" aria-label="Tiến độ nấu">
@@ -2285,20 +2264,20 @@ function App() {
         </section>}
         {page === "favorites" && (
           <>
-            <section className="saved-overview"><span className="saved-overview-icon"><Bookmark size={19}/></span><div><span className="screen-kicker">SỔ TAY MÓN NGON</span><h2>Món bạn muốn nấu lại</h2><p>{favorites.length} món đã lưu · {savedVideos.length} video muốn thử</p></div><button onClick={() => setPage("explore")}>Tìm món <ArrowRight size={16}/></button></section>
-            <section className="saved-controls" aria-label="Tìm và lọc món đã lưu">
+            <section className="saved-overview"><span className="saved-overview-icon"><Bookmark size={19}/></span><div><span className="screen-kicker">SỔ TAY MÓN NGON</span><h2>Món bạn muốn nấu lại</h2></div><button onClick={() => setPage("explore")}>Tìm món <ArrowRight size={16}/></button></section>
+            {favorites.length > 0 && <section className="saved-controls" aria-label="Tìm và lọc món đã lưu">
               <label className="searchbox saved-search"><Search size={17}/><input aria-label="Tìm trong món đã lưu" value={savedQuery} onChange={(event) => setSavedQuery(event.target.value)} placeholder="Tìm món đã lưu…"/>{savedQuery && <button type="button" onClick={() => setSavedQuery("")} aria-label="Xóa nội dung tìm kiếm"><X size={15}/></button>}</label>
               <div className="saved-filter-tabs" role="group" aria-label="Lọc theo nguyên liệu trong tủ">
                 <button className={savedFilter === "all" ? "chosen" : ""} aria-pressed={savedFilter === "all"} onClick={() => setSavedFilter("all")}>Tất cả <span>{favorites.length}</span></button>
                 <button className={savedFilter === "ready" ? "chosen" : ""} aria-pressed={savedFilter === "ready"} onClick={() => setSavedFilter("ready")}>Đang có đủ tên <span>{savedReadyCount}</span></button>
                 <button className={savedFilter === "need" ? "chosen" : ""} aria-pressed={savedFilter === "need"} onClick={() => setSavedFilter("need")}>Cần xem thêm</button>
               </div>
-            </section>
+            </section>}
             {filteredSavedRecipes.length === 0 ? (
               <div className="no-results">
                 <span>♡</span>
                 <h3>{favorites.length ? "Không tìm thấy món phù hợp" : "Chưa có món đã lưu"}</h3>
-                <p>{favorites.length ? "Thử đổi từ khóa hoặc bộ lọc." : recentRecipeIds.length ? `Bạn đã xem ${recentRecipeIds.length} món gần đây; lưu món sẽ giúp tìm lại nhanh hơn.` : "Chạm vào biểu tượng trái tim ở món bạn thích."}</p>
+                {favorites.length > 0 && <p>Thử đổi từ khóa hoặc bộ lọc.</p>}
               </div>
             ) : (
               <div className="recipe-list saved-recipe-list">
@@ -2317,35 +2296,24 @@ function App() {
                 })}
               </div>
             )}
-            <section className="history-box recently-viewed">
+            {recentRecipeIds.length > 0 && <section className="history-box recently-viewed">
               <div className="section-heading-inline"><h3><History size={17} /> Đã xem gần đây <span>{recentRecipeIds.length}</span></h3>{history.length > 0 && <button className="text-button" onClick={() => { if (window.confirm("Xóa toàn bộ lịch sử xem món? Danh sách món đã nấu sẽ được giữ nguyên.")) setHistory([]); }}>Xóa lịch sử xem</button>}</div>
-              {recentRecipeIds.length > 0 ? <div className="recent-recipe-list">{recentRecipeIds.map((id) => {
+              <div className="recent-recipe-list">{recentRecipeIds.map((id) => {
                 const recipe = recipeById.get(id)!;
                 const required = recipe.required ?? [];
                 const owned = required.filter((ingredientId) => ids.has(ingredientId));
                 return <RecipeCard key={id} recipe={recipe} missing={required.filter((ingredientId) => !ids.has(ingredientId))} owned={owned} ratio={required.length ? Math.round(owned.length / required.length * 100) : 0} urgent={false} onClick={() => openRecipe(recipe)} />;
-              })}</div> : <p>Những món bạn mở gần đây sẽ hiện ở đây.</p>}
-            </section>
-            <section className="history-box saved-video-box"><h3>Video muốn thử <span>{savedVideos.length}</span></h3>{savedVideos.length ? savedVideos.map((video) => <article className="saved-video" key={video.id}><div><small>{video.platform === "youtube" ? "YouTube" : video.platform === "tiktok" ? "TikTok" : "Facebook"} · đã lưu {new Date(video.savedAt).toLocaleDateString("vi-VN")}</small>{video.note && <p>{video.note}</p>}<a href={video.url} target="_blank" rel="noreferrer">Mở video <ExternalLink size={13}/></a></div><button className="icon-button" onClick={() => setSavedVideos((items) => items.filter((item) => item.id !== video.id))} aria-label="Xóa link video"><X size={16}/></button></article>) : <p>Link video đã lưu sẽ hiện ở đây.</p>}</section>
-            <section className="history-box">
-              <h3>
-                <History size={17} /> Món đã nấu
-              </h3>
-              {cooked.length ? (
-                cooked.map((id) => (
-                  <p key={id}>{allLibraryRecipes.find((r) => r.id === id)?.name}</p>
-                ))
-              ) : (
-                <p>Những món đã nấu sẽ hiện ở đây.</p>
-              )}
-            </section>
+              })}</div>
+            </section>}
+            {savedVideos.length > 0 && <section className="history-box saved-video-box"><h3>Video muốn thử <span>{savedVideos.length}</span></h3>{savedVideos.map((video) => <article className="saved-video" key={video.id}><div><small>{video.platform === "youtube" ? "YouTube" : video.platform === "tiktok" ? "TikTok" : "Facebook"} · đã lưu {new Date(video.savedAt).toLocaleDateString("vi-VN")}</small>{video.note && <p>{video.note}</p>}<a href={video.url} target="_blank" rel="noreferrer">Mở video <ExternalLink size={13}/></a></div><button className="icon-button" onClick={() => setSavedVideos((items) => items.filter((item) => item.id !== video.id))} aria-label="Xóa link video"><X size={16}/></button></article>)}</section>}
+            {cooked.length > 0 && <section className="history-box">
+              <h3><History size={17} /> Món đã nấu</h3>
+              {cooked.map((id) => <p key={id}>{allLibraryRecipes.find((r) => r.id === id)?.name}</p>)}
+            </section>}
           </>
         )}
         {page === "settings" && (
           <>
-            <p className="page-subtitle">
-              Tùy chọn được lưu trên thiết bị và áp dụng ngay khi tìm món.
-            </p>
             <section className="pref-section">
               <h2>Chế độ ăn</h2>
               <PrefRow
@@ -2381,16 +2349,16 @@ function App() {
                 checked={prefs.noDefrost}
                 onChange={(v) => setPrefs((p) => ({ ...p, noDefrost: v }))}
               />
-              <p className="pref-help">Đánh dấu “Ngăn đông” ở nguyên liệu trong tủ lạnh để lọc món cần rã đông.</p>
+              <p className="pref-help">Ẩn món cần rã đông.</p>
               <PrefRow icon="🔁" title="Cho phép gợi ý nguyên liệu thay thế" checked={prefs.allowSubstitutions} onChange={(v) => setPrefs((p) => ({ ...p, allowSubstitutions: v }))} />
-              <p className="pref-help">Chỉ dùng quy tắc có nguồn tham khảo; món thay thế được xếp riêng, không tính là đủ nguyên liệu gốc.</p>
+              <p className="pref-help">Món thay thế không tính là đủ nguyên liệu gốc.</p>
               <PrefRow
                 icon="🍚"
                 title="Không muốn nấu cơm"
                 checked={prefs.noRice}
                 onChange={(v) => setPrefs((p) => ({ ...p, noRice: v }))}
               />
-              <p className="pref-help">Lọc món có gạo là nguyên liệu bắt buộc; chưa nhận diện món ăn kèm cơm.</p>
+              <p className="pref-help">Ẩn món có gạo là nguyên liệu chính.</p>
               <PrefRow
                 icon="🍳"
                 title="Không muốn chiên / xào"
@@ -2429,18 +2397,18 @@ function App() {
                 {Array.from({ length: 12 }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count} phần</option>)}
               </select>
             </label>
-                <p className="pref-help">Chưa có định lượng để điều chỉnh khẩu phần trong dữ liệu công thức hiện tại. Khi có công thức kèm định lượng và số phần gốc, app sẽ kiểm tra lượng trong tủ lạnh; không sửa công thức gốc.</p>
+                <p className="pref-help">Áp dụng khi công thức có định lượng và khẩu phần gốc.</p>
             </section>
             <section className="pref-section">
               <h2>Không muốn dùng</h2>
-              <p className="pref-help">Chọn nguyên liệu cần loại khỏi gợi ý. Đây không phải công cụ xác nhận an toàn dị ứng hoặc nhiễm chéo.</p>
+              <p className="pref-help">Loại nguyên liệu khỏi gợi ý. Không thay thế kiểm tra dị ứng.</p>
               {prefs.avoid.length > 0 && <div className="avoid-selected" aria-label="Nguyên liệu đang tránh">{prefs.avoid.map((value) => {
                 const id = canonicalIngredientPreference(value, ingredientIndex);
                 const ingredient = ingredients.find((entry) => entry.id === id);
                 const label = ingredient?.name ?? (value.startsWith("custom-") ? value.slice(7).replace(/-/g, " ") : value);
                 return <button key={value} className="avoid-chip" onClick={() => setPrefs((p) => ({ ...p, avoid: p.avoid.filter((entry) => entry !== value) }))} aria-label={`Bỏ tránh ${label}`}>{ingredient?.emoji ?? "🥣"} {label}<X size={13} /></button>;
               })}</div>}
-              <label className="avoid-search"><Search size={16}/><input value={avoidQuery} onChange={(event) => setAvoidQuery(event.target.value)} placeholder="Tìm nguyên liệu, tên khác…" /><span>{ingredients.length} nguyên liệu</span></label>
+              <label className="avoid-search"><Search size={16}/><input value={avoidQuery} onChange={(event) => setAvoidQuery(event.target.value)} placeholder="Tìm nguyên liệu…" /></label>
               <div className="avoid-tags">
                 {avoidCandidates.map((i) => (
                     <button
@@ -2463,7 +2431,7 @@ function App() {
           </>
         )}
       </main>
-      {page === "fridge" && !pickerOpen && (
+      {page === "fridge" && stock.length > 0 && !pickerOpen && (
         <div className="find-dock">
           <button className="find-button" onClick={showBestTab}>
             <CookingPot size={18} />
