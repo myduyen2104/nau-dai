@@ -3,7 +3,6 @@ import { ingredients as coreIngredients } from "../src/data.ts";
 
 const root = process.cwd();
 const mnnmDir = `${root}/public/data/mnnm`;
-const canonicalPath = `${root}/public/data/dinhduong2598-canonical-recipes.json`;
 const knorrArchivePath = `${root}/data-archive/knorr_source_2026-11-15/recipes.jsonl`;
 const outputPath = `${root}/src/data/source-ingredients.json`;
 
@@ -60,11 +59,9 @@ function classify(name) {
 
 const mnnmFiles = (await readdir(mnnmDir)).filter((file) => /^recipes-\d+\.json$/.test(file));
 const mnnmRecipes = (await Promise.all(mnnmFiles.map(async (file) => JSON.parse(await readFile(`${mnnmDir}/${file}`, "utf8"))))).flat();
-const canonical = JSON.parse(await readFile(canonicalPath, "utf8"));
 const sourceRows = [];
 let knorrRecipes = [];
 for (const recipe of mnnmRecipes) for (const item of recipe.ingredients ?? []) sourceRows.push({ name: item.name, source: "Món Ngon Mỗi Ngày", kind: item.kind ?? "ingredient" });
-for (const recipe of canonical) for (const variant of recipe.variants ?? []) for (const name of variant.ingredientNames ?? []) sourceRows.push({ name, source: "Dinh dưỡng 2598", kind: "ingredient" });
 try {
   knorrRecipes = (await readFile(knorrArchivePath, "utf8")).split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
   for (const recipe of knorrRecipes) for (const rawName of recipe.ingredients ?? []) sourceRows.push({ name: knorrIngredientName(rawName), rawName, source: "Knorr Việt Nam", kind: "ingredient" });
@@ -148,5 +145,5 @@ for (const item of cleanSupplemental) idCounts.set(item.id, (idCounts.get(item.i
 const duplicateIds = [...idCounts].filter(([, count]) => count > 1);
 if (duplicateIds.length) throw new Error(`Generated ingredient ID collision(s): ${duplicateIds.slice(0, 10).map(([id]) => id).join(", ")}`);
 
-await writeFile(outputPath, `${JSON.stringify({ sources: ["Món Ngon Mỗi Ngày", "Dinh dưỡng 2598", ...(knorrRecipes.length ? ["Knorr Việt Nam"] : [])], sourceIngredientRows: sourceRows.length, coreIngredients: cleanCore, supplementalIngredients: cleanSupplemental })}\n`);
-console.log(`Generated ${cleanCore.length} core ingredients with source aliases and ${cleanSupplemental.length} supplemental ingredients from ${sourceRows.length} ingredient rows across ${mnnmRecipes.length} MNMM recipes, ${canonical.length} Dinh dưỡng 2598 canonical recipes (${canonical.reduce((sum, recipe) => sum + (recipe.variants?.length ?? 0), 0)} variants), and ${knorrRecipes.length} Knorr recipes.`);
+await writeFile(outputPath, `${JSON.stringify({ sources: ["Món Ngon Mỗi Ngày", ...(knorrRecipes.length ? ["Knorr Việt Nam"] : [])], sourceIngredientRows: sourceRows.length, coreIngredients: cleanCore, supplementalIngredients: cleanSupplemental })}\n`);
+console.log(`Generated ${cleanCore.length} core ingredients with source aliases and ${cleanSupplemental.length} supplemental ingredients from ${sourceRows.length} ingredient rows across ${mnnmRecipes.length} MNMN recipes and ${knorrRecipes.length} Knorr recipes.`);

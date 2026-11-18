@@ -1,0 +1,261 @@
+{
+  "updatedAt": "2026-11-18",
+  "records": [
+    {
+      "source": "mnnm",
+      "recipeId": "monngonmoingay:suon-cong-nuong-rau-cu",
+      "thumbPath": "/images/sources/mnnm/suon-cong-nuong-rau-cu-thumb.webp",
+      "cardImagePath": "/images/sources/mnnm/suon-cong-nuong-rau-cu-card.webp",
+      "imagePath": "/images/sources/mnnm/suon-cong-nuong-rau-cu-detail.webp",
+      "sourceUrl": "https://monngonmoingay.com/wp-content/uploads/2026/10/Suon-Cong-Nuong-Rau-Cu.png"
+    },
+    {
+      "source": "mnnm",
+      "recipeId": "monngonmoingay:thit-bo-xao-dau-rong-sa-te",
+      "thumbPath": "/images/sources/mnnm/thit-bo-xao-dau-rong-sa-te-thumb.webp",
+      "cardImagePath": "/images/sources/mnnm/thit-bo-xao-dau-rong-sa-te-card.webp",
+      "imagePath": "/images/sources/mnnm/thit-bo-xao-dau-rong-sa-te-detail.webp",
+      "sourceUrl": "https://monngonmoingay.com/wp-content/uploads/2026/09/Thit-Bo-Xao-Dau-Rong-Sa-Te.png"
+    },
+    {
+      "source": "mnnm",
+      "recipeId": "monngonmoingay:gyoza-chien-gion",
+      "thumbPath": "/images/sources/mnnm/gyoza-chien-gion-thumb.webp",
+      "cardImagePath": "/images/sources/mnnm/gyoza-chien-gion-card.webp",
+      "imagePath": "/images/sources/mnnm/gyoza-chien-gion-detail.webp",
+      "sourceUrl": "https://monngonmoingay.com/wp-content/uploads/2026/09/Gyoza-Chien-Gion.png"
+    },
+    {
+      "source": "mnnm",
+      "recipeId": "monngonmoingay:canh-mong-toi-tom-bap",
+      "thumbPath": "/images/sources/mnnm/canh-mong-toi-tom-bap-thumb.webp",
+      "cardImagePath": "/images/sources/mnnm/canh-mong-toi-tom-bap-card.webp",
+      "imagePath": "/images/sources/mnnm/canh-mong-toi-tom-bap-detail.webp",
+      "sourceUrl": "https://monngonmoingay.com/wp-content/uploads/2026/09/Canh-Mong-Toi-Tom-Bap.png"
+    },
+    {
+      "source": "mnnm",
+      "recipeId": "monngonmoingay:canh-ca-tam-vi-thai",
+      "thumbPath": "/images/sources/mnnm/canh-ca-tam-vi-thai-thumb.webp",
+      "cardImagePath": "/images/sources/mnnm/canh-ca-tam-vi-thai-card.webp",
+      "imagePath": "/images/sources/mnnm/canh-ca-tam-vi-thai-detail.webp",
+      "sourceUrl": "https://monngonmoingay.com/wp-content/uploads/2026/09/Canh-Ca-Tam-Vi-Thai.png"
+    },
+    {
+      "source": "mnnm",
+      "recipeId": "monngonmoingay:cha-gio-so-diep-xot-trung-muoi",
+      "thumbPath": "/images/sources/mnnm/cha-gio-so-diep-xot-trung-muoi-thumb.webp",
+      "cardImagePath": "/images/sources/mnnm/cha-gio-so-diep-xot-trung-muoi-card.webp",
+      "imagePath": "/images/sources/mnnm/cha-gio-so-diep-xot-trung-muoi-detail.webp",
+      "sourceUrl": "https://monngonmoingay.com/wp-content/uploads/2026/09/Cha-Gio-So-Diep-Xot-Trung-Muoi.png"
+    },
+    {
+      "source": "mnnm",
+      "recipeId": "monngonmoingay:goi-buoi-thit-bo-xot-me-rang",
+      "thumbPath": "/images/sources/mnnm/goi-buoi-thit-bo-xot-me-rang-thumb.webp",
+      "cardImagePath": "/images/sources/mnnm/goi-buoi-thit-bo-xot-me-rang-card.webp",
+      "imagePath": "/images/sources/mnnm/goi-buoi-thit-bo-xot-me-rang-detail.webp",
+      "sourceUrl": "https://monngonmoingay.com/wp-content/uploads/2026/09/Goi-Buoi-Thit-Bo-Xot-Me-Rang.png"
+    },
+    {
+      "source": "mnnm",
+      "recipeId": "monngonmoingay:sup-tom-gyoza",
+      "thumbPath": "/images/sources/mnnm/sup-tom-gyoza-thumb.webp",
+      "cardImagePath": "/images/sources/mnnm/sup-tom-gyoza-card.webp",
+      "imagePath": "/images/sources/mnnm/sup-tom-gyoza-detail.webp",
+      "sourceUrl": "https://monngonmoingay.com/wp-content/uploads/2026/08/Sup-tom-Gyoza.png"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:237152",
+      "thumbPath": "/images/sources/knorr/237152-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/237152-card.webp",
+      "imagePath": "/images/sources/knorr/237152-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/237152-default.jpg?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:202805",
+      "thumbPath": "/images/sources/knorr/202805-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/202805-card.webp",
+      "imagePath": "/images/sources/knorr/202805-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/202805-default.png?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:167139",
+      "thumbPath": "/images/sources/knorr/167139-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/167139-card.webp",
+      "imagePath": "/images/sources/knorr/167139-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/167139-default.jpg?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:167141",
+      "thumbPath": "/images/sources/knorr/167141-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/167141-card.webp",
+      "imagePath": "/images/sources/knorr/167141-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/167141-default.jpg?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:167109",
+      "thumbPath": "/images/sources/knorr/167109-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/167109-card.webp",
+      "imagePath": "/images/sources/knorr/167109-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/167109-default.jpg?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:167050",
+      "thumbPath": "/images/sources/knorr/167050-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/167050-card.webp",
+      "imagePath": "/images/sources/knorr/167050-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/167050-default.png?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:247176",
+      "thumbPath": "/images/sources/knorr/247176-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/247176-card.webp",
+      "imagePath": "/images/sources/knorr/247176-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/247176-default.jpg?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:237151",
+      "thumbPath": "/images/sources/knorr/237151-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/237151-card.webp",
+      "imagePath": "/images/sources/knorr/237151-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/237151-default.jpg?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:233434",
+      "thumbPath": "/images/sources/knorr/233434-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/233434-card.webp",
+      "imagePath": "/images/sources/knorr/233434-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/233434-default.png?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:233416",
+      "thumbPath": "/images/sources/knorr/233416-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/233416-card.webp",
+      "imagePath": "/images/sources/knorr/233416-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/233416-default.png?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:237155",
+      "thumbPath": "/images/sources/knorr/237155-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/237155-card.webp",
+      "imagePath": "/images/sources/knorr/237155-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/237155-default.jpg?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:202773",
+      "thumbPath": "/images/sources/knorr/202773-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/202773-card.webp",
+      "imagePath": "/images/sources/knorr/202773-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/202773-default.png?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:233419",
+      "thumbPath": "/images/sources/knorr/233419-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/233419-card.webp",
+      "imagePath": "/images/sources/knorr/233419-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/233419-default.png?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:233395",
+      "thumbPath": "/images/sources/knorr/233395-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/233395-card.webp",
+      "imagePath": "/images/sources/knorr/233395-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/233395-default.png?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:233431",
+      "thumbPath": "/images/sources/knorr/233431-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/233431-card.webp",
+      "imagePath": "/images/sources/knorr/233431-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/233431-default.png?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:233386",
+      "thumbPath": "/images/sources/knorr/233386-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/233386-card.webp",
+      "imagePath": "/images/sources/knorr/233386-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/233386-default.jpg?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:233390",
+      "thumbPath": "/images/sources/knorr/233390-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/233390-card.webp",
+      "imagePath": "/images/sources/knorr/233390-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/233390-default.png?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:158014",
+      "thumbPath": "/images/sources/knorr/158014-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/158014-card.webp",
+      "imagePath": "/images/sources/knorr/158014-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/158014-default.jpg?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:157955",
+      "thumbPath": "/images/sources/knorr/157955-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/157955-card.webp",
+      "imagePath": "/images/sources/knorr/157955-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/157955-default.jpg?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:157749",
+      "thumbPath": "/images/sources/knorr/157749-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/157749-card.webp",
+      "imagePath": "/images/sources/knorr/157749-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/157749-default.jpg?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:157925",
+      "thumbPath": "/images/sources/knorr/157925-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/157925-card.webp",
+      "imagePath": "/images/sources/knorr/157925-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/157925-default.jpg?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:157831",
+      "thumbPath": "/images/sources/knorr/157831-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/157831-card.webp",
+      "imagePath": "/images/sources/knorr/157831-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/157831-default.jpg?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:254548",
+      "thumbPath": "/images/sources/knorr/254548-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/254548-card.webp",
+      "imagePath": "/images/sources/knorr/254548-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/254548-default.jpg?im=Resize=(400,400)"
+    },
+    {
+      "source": "knorr",
+      "recipeId": "knorr:157796",
+      "thumbPath": "/images/sources/knorr/157796-thumb.webp",
+      "cardImagePath": "/images/sources/knorr/157796-card.webp",
+      "imagePath": "/images/sources/knorr/157796-detail.webp",
+      "sourceUrl": "https://assets.unileversolutions.com/recipes-v3/157796-default.jpg?im=Resize=(400,400)"
+    }
+  ]
+}

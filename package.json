@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && node scripts/build-runtime-recipe-image-manifest.mjs && vite build && node scripts/prune-production-output.mjs",
+    "build": "tsc -b && node scripts/build-runtime-recipe-image-manifest.mjs && python3 scripts/build-optimized-source-images.py && vite build && node scripts/prune-production-output.mjs",
     "build:mnnm-app-data": "node scripts/build-mnnm-app-data.mjs",
     "build:knorr-app-data": "node scripts/build-knorr-app-data.mjs",
     "scrape:knorr-tips": "python3 scripts/scrape_knorr_tips.py",
@@ -25,12 +25,7 @@
     "dedupe:recipes": "node scripts/deduplicate-recipes.mjs",
     "validate:dataset": "node scripts/validate-dataset.mjs",
     "index:recipes": "node scripts/build-recipe-index.mjs",
-    "build:canonical-source-recipes": "node scripts/build-deduped-source-recipes.mjs",
-    "build:source-recipe-shards": "node scripts/build-source-recipe-shards.mjs",
-    "build:source-recipe-catalog": "node scripts/build-source-recipe-catalog.mjs",
-    "build:fridge-index": "node scripts/build-fridge-recipe-index.mjs",
-    "sync:youtube": "node scripts/sync-youtube.mjs",
-    "build:canonical-data": "npm run build:canonical-source-recipes && npm run build:source-recipe-shards && npm run build:source-recipe-catalog && npm run build:fridge-index && node scripts/dedupe-recipe-image-manifest.mjs"
+    "sync:youtube": "node scripts/sync-youtube.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

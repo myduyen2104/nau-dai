@@ -27,16 +27,6 @@
     ]
   },
   {
-    "id": "egg-boil",
-    "name": "Trứng luộc",
-    "status": "full_recipe",
-    "terms": [
-      "trung luoc",
-      "egg",
-      "salt"
-    ]
-  },
-  {
     "id": "noodle-egg",
     "name": "Mì trứng rau cải",
     "status": "full_recipe",
@@ -162,24 +152,6 @@
       "salt",
       "scallion",
       "pork"
-    ]
-  },
-  {
-    "id": "boiled-corn",
-    "name": "Bắp luộc",
-    "status": "full_recipe",
-    "terms": [
-      "bap luoc",
-      "corn"
-    ]
-  },
-  {
-    "id": "sweet-potato",
-    "name": "Khoai lang luộc",
-    "status": "full_recipe",
-    "terms": [
-      "khoai lang luoc",
-      "sweet potato"
     ]
   },
   {
@@ -422,16 +394,6 @@
     ]
   },
   {
-    "id": "carrot-boil",
-    "name": "Cà rốt luộc",
-    "status": "full_recipe",
-    "terms": [
-      "ca rot luoc",
-      "carrot",
-      "salt"
-    ]
-  },
-  {
     "id": "egg-steam",
     "name": "Trứng hấp mềm",
     "status": "full_recipe",
@@ -509,7 +471,7 @@
   {
     "id": "copper:vn-banh-xeo",
     "name": "Bánh xèo",
-    "status": "ingredients_only",
+    "status": "full_recipe",
     "terms": [
       "banh xeo",
       "rice flour",
@@ -525,13 +487,20 @@
       "sugar",
       "lime",
       "garlic",
-      "birds eye chili"
+      "birds eye chili",
+      "bot chien gion",
+      "nuoc loc",
+      "muoi",
+      "hanh tay",
+      "dau an",
+      "muoi",
+      "nuoc loc"
     ]
   },
   {
     "id": "copper:vn-bun-cha",
     "name": "Bún chả",
-    "status": "ingredients_only",
+    "status": "full_recipe",
     "terms": [
       "bun cha",
       "pork mince",
@@ -545,13 +514,19 @@
       "birds eye chili",
       "carrot",
       "lettuce",
-      "mixed herbs mint coriander perilla"
+      "mixed herbs mint coriander perilla",
+      "du du xanh",
+      "hanh kho",
+      "nuoc hang",
+      "tieu xay",
+      "nuoc loc",
+      "mo lon"
     ]
   },
   {
     "id": "copper:vn-pho-bo",
     "name": "Phở bò",
-    "status": "ingredients_only",
+    "status": "full_recipe",
     "terms": [
       "pho bo",
       "beef bones",
@@ -570,7 +545,15 @@
       "bean sprouts",
       "thai basil",
       "spring onion",
-      "lime"
+      "lime",
+      "sa sung kho",
+      "mia",
+      "dau hao",
+      "hanh kho",
+      "muoi",
+      "tieu",
+      "nuoc loc",
+      "ngo gai"
     ]
   }
 ]

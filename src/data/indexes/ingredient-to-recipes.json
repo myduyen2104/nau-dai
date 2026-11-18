@@ -2,7 +2,6 @@
   "egg": [
     "carrot-egg",
     "tomato-egg",
-    "egg-boil",
     "noodle-egg",
     "cabbage-egg",
     "bread-egg",
@@ -22,7 +21,6 @@
     "glass-noodle-stir",
     "glass-noodle-soup",
     "carrot-salad",
-    "carrot-boil",
     "chicken-soup"
   ],
   "oil": [
@@ -69,7 +67,6 @@
   "salt": [
     "carrot-egg",
     "tomato-egg",
-    "egg-boil",
     "noodle-egg",
     "garlic-greens",
     "cabbage-egg",
@@ -83,7 +80,6 @@
     "tomato-soup",
     "coconut-pumpkin",
     "cabbage-soup",
-    "carrot-boil",
     "egg-steam",
     "potato-mash",
     "corn-egg",
@@ -184,13 +180,6 @@
     "potato-mash",
     "chicken-soup"
   ],
-  "corn": [
-    "boiled-corn",
-    "corn-egg"
-  ],
-  "sweet-potato": [
-    "sweet-potato"
-  ],
   "oats": [
     "oatmeal-banana"
   ],
@@ -254,6 +243,9 @@
   ],
   "butter": [
     "potato-mash"
+  ],
+  "corn": [
+    "corn-egg"
   ],
   "pasta": [
     "pasta-tomato"

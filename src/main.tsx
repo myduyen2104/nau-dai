@@ -43,14 +43,12 @@ import type { SavedVideo, TrendingVideo } from "./types/trending";
 import { clearVideoWatchHistory, freshYoutubeCatalogVideos, inferYoutubeFeedInterests, newVideoSessionSeed, rankYoutubeFeed, readVideoWatchHistory, recordVideoWatchEvent, type YouTubeCatalogVideo, type VideoWatchRecord } from "./services/youtubeFeed";
 import { formatRecipeQuantity, isScalableRecipeUnit, scaleRecipeQuantity } from "./utils/servings";
 import { recordRecentRecipe, visibleRecentRecipes } from "./utils/recipeHistory";
-import { migrateCanonicalIdList } from "./utils/canonicalIdMigration";
 import { isValidDateOnly } from "./utils/dateOnly";
 import { normalizeVietnamese, resolveIngredientId, buildIngredientIndex, canonicalIngredientPreference } from "./utils/ingredientMatcher";
 import { parseSupportedVideoUrl } from "./utils/trending";
 import { defaultRecommendationPreferences, recommendRecipes } from "./services/recommendationEngine";
 import { migrateLocalStorage } from "./utils/storageMigration";
-import { filterSourceRecipeCatalog, groupCanonicalRecipeCandidates, recipeSearchRelevance, sourceFridgeIndexToCatalogItem, sourceFridgeIndexToEngineRecipe, sourceInstructionParagraphs, sourceRecipeCompleteness, sourceRecipeEligibleForFridge, sourceRecipeMissingIngredients, sourceRecipeWarnings, type CanonicalRecipeCandidate, type SourceFridgeIndexItem, type SourceRecipeCatalogItem, type SourceRecipeDetail } from "./services/sourceRecipeCatalog";
-import { loadSourceRecipeDetail } from "./services/sourceRecipeDetails";
+import { groupCanonicalRecipeCandidates, recipeSearchRelevance, sourceRecipeCompleteness, sourceRecipeEligibleForFridge, sourceRecipeMissingIngredients, sourceRecipeWarnings, type CanonicalRecipeCandidate, type SourceRecipeCatalogItem, type SourceRecipeDetail } from "./services/sourceRecipeCatalog";
 import { getSourceInstructionSupplement } from "./services/sourceInstructionSupplements";
 import { suggestFlexibleRecipes } from "./services/flexibleRecipeSuggestions";
 import { filterRecommendationList, RECOMMENDATION_PAGE_SIZE, uniqueRecommendationsByRecipeTitle } from "./services/recommendationList";
@@ -275,25 +273,13 @@ function shortSourceTip(tip: string) {
   const boundary = clean.lastIndexOf(" ", 177);
   return `${clean.slice(0, boundary > 120 ? boundary : 177).trimEnd()}…`;
 }
-function preferHigherResolutionImage(event: SyntheticEvent<HTMLImageElement>, fallbackUrls: string[] = []) {
-  const image = event.currentTarget;
-  const inspectNext = (index: number) => {
-    const nextUrl = fallbackUrls[index];
-    if (!nextUrl || image.naturalWidth >= 1000) return;
-    image.dataset.fallbackIndex = String(index + 1);
-    if (new URL(nextUrl, location.href).href === image.currentSrc) return inspectNext(index + 1);
-    const probe = new Image();
-    probe.onload = () => probe.naturalWidth > image.naturalWidth ? image.src = nextUrl : inspectNext(index + 1);
-    probe.onerror = () => inspectNext(index + 1);
-    probe.src = nextUrl;
-  };
-  inspectNext(Number(image.dataset.fallbackIndex ?? 0));
-}
+
 function fallbackRecipeSourceImage(event: SyntheticEvent<HTMLImageElement>, recipe: Recipe) {
   const image = event.currentTarget;
+  // If we already failed once or it is a known 403 host, immediately fallback to unavailable to prevent cascade jank
   const nextIndex = Number(image.dataset.fallbackIndex ?? 0);
   const nextImage = recipe.imageFallbacks?.[nextIndex];
-  if (nextImage) {
+  if (nextImage && !nextImage.includes("unileversolutions.com")) {
     image.dataset.fallbackIndex = String(nextIndex + 1);
     image.src = nextImage;
     return;
@@ -364,7 +350,16 @@ type RecipeImage = {
   modifications?: string;
 };
 type CookingTip = { id: string; title: string; subheading?: string; text: string; source: string; sourceUrl: string | null; imageUrl?: string | null };
+type SourceRecipeImageRecord = {
+  source: "knorr" | "mnnm";
+  recipeId: string;
+  thumbPath: string;
+  cardImagePath: string;
+  imagePath: string;
+  sourceUrl?: string;
+};
 let recipeImages = new Map<string, RecipeImage>();
+let sourceRecipeImages = new Map<string, SourceRecipeImageRecord>();
 let recipeImagesReady = false;
 void fetch("/data/recipe-image-manifest.json")
   .then((response) => response.ok ? response.json() as Promise<{ records?: RecipeImage[] }> : null)
@@ -374,11 +369,49 @@ void fetch("/data/recipe-image-manifest.json")
     window.dispatchEvent(new Event("recipe-images-loaded"));
   })
   .catch(() => { recipeImagesReady = true; });
+
+void fetch("/data/source-recipe-image-manifest.json")
+  .then((response) => response.ok ? response.json() as Promise<{ records?: SourceRecipeImageRecord[] }> : null)
+  .then((manifest) => {
+    sourceRecipeImages = new Map((manifest?.records ?? []).map((record) => [record.recipeId, record]));
+    window.dispatchEvent(new Event("recipe-images-loaded"));
+  })
+  .catch(() => {});
+
 function recipeImageFor(recipeId: string) {
-  if (recipeId.startsWith("knorr:")) return undefined;
-  const source = recipeId.startsWith("copper:") ? "copper" : recipeId.startsWith("dinhduong2598:") ? "dinhduong2598" : "internal";
-  const keyId = source === "dinhduong2598" ? recipeId.slice("dinhduong2598:".length) : recipeId;
+  const sourceImageRecord = sourceRecipeImages.get(recipeId);
+  if (sourceImageRecord) {
+    return {
+      source: sourceImageRecord.source,
+      recipeId: sourceImageRecord.recipeId,
+      imagePath: sourceImageRecord.imagePath,
+      cardImagePath: sourceImageRecord.cardImagePath,
+      thumbPath: sourceImageRecord.thumbPath,
+      verificationStatus: "verified",
+      lastChecked: "2026-11-18",
+    } as RecipeImage & { thumbPath?: string };
+  }
+  if (recipeId.startsWith("knorr:") || recipeId.startsWith("monngonmoingay:")) return undefined;
+  const source = recipeId.startsWith("copper:") ? "copper" : "internal";
+  const keyId = recipeId;
   return recipeImages.get(`${source}|${keyId}`);
+}
+function flexibleRecipeImageFor(recipe: Recipe) {
+  if (!recipe.tags.includes("Gợi ý linh hoạt")) return undefined;
+  const names = recipe.ingredients.map((ingredient) => normalizeVietnamese(ingredient.sourceName ?? ingredient.ingredientId));
+  const has = (term: string) => names.some((name) => name === term || name.startsWith(`${term} `));
+  const fishTerms = ["ca loc", "ca basa", "ca hoi", "ca thu", "ca ro", "ca chim", "ca trich", "ca tre", "ca lang"];
+  const hasFish = names.some((name) => name === "ca" || fishTerms.some((term) => name === term || name.startsWith(`${term} `)));
+  const hasTofu = has("dau hu") || has("dau phu");
+  const imageTemplate = recipe.method === "canh" ? hasTofu ? "tofu-vegetable-soup" : "prepared-meat-vegetable-soup"
+    : has("thit bo") ? "beef-stir-fry"
+      : has("thit ga") ? "chicken-stir-fry"
+        : has("thit heo") ? "pork-stir-fry"
+          : has("tom") ? "shrimp-stir-fry"
+            : hasFish ? "fish-stir-fry"
+              : hasTofu ? "tofu-stir-fry"
+                : has("trung") ? "egg-stir-fry" : "vegetable-stir-fry";
+  return recipeImageFor(`flexible-template:${imageTemplate}`);
 }
 function App() {
   const [initialCookingSession] = useState(() => loadActiveCookSession());
@@ -410,7 +443,7 @@ function App() {
   const [libraryQuery, setLibraryQuery] = useState(() => new URLSearchParams(window.location.search).get("q") ?? "");
   const [libraryCategory, setLibraryCategory] = useState("Tất cả");
   const [libraryStatus, setLibraryStatus] = useState("Tất cả");
-  const [librarySourceFilter, setLibrarySourceFilter] = useState<"all" | "internal" | "copper" | "dinhduong2598" | "mnnm" | "knorr" | "other">("all");
+  const [librarySourceFilter, setLibrarySourceFilter] = useState<"all" | "internal" | "copper" | "mnnm" | "knorr" | "other">("all");
   const [homeFiltersOpen, setHomeFiltersOpen] = useState(false);
   const [homeFilterGroup, setHomeFilterGroup] = useState<"category" | "source" | "instructions" | null>(null);
   const [libraryDiet, setLibraryDiet] = useState(false);
@@ -691,7 +724,6 @@ function App() {
     const timeout = window.setTimeout(() => { setPickerMessage(""); setPickerUndoId(""); }, 6000);
     return () => window.clearTimeout(timeout);
   }, [pickerMessage]);
-  const [sourceCatalog, setSourceCatalog] = useState<SourceRecipeCatalogItem[] | null>(null);
   const [cookingTips, setCookingTips] = useState<CookingTip[] | null>(null);
   const [cookingTipIndex, setCookingTipIndex] = useState(0);
   const [mnnmCatalog, setMnnmCatalog] = useState<MnnmCatalogItem[] | null>(null);
@@ -705,15 +737,10 @@ function App() {
   const [mnnmRecipeSelection, setMnnmRecipeSelection] = useState<MnnmCatalogItem | null>(null);
   const [mnnmRecipeDetail, setMnnmRecipeDetail] = useState<MnnmRecipeDetail | null>(null);
   const [mnnmDetailLoad, setMnnmDetailLoad] = useState<"idle" | "loading" | "error">("idle");
-  const [sourceFridgeIndex, setSourceFridgeIndex] = useState<SourceFridgeIndexItem[] | null>(null);
-  const [sourceFridgeIndexLoad, setSourceFridgeIndexLoad] = useState<"loading" | "ready" | "error">("loading");
-  const [sourceCatalogLoad, setSourceCatalogLoad] = useState<"idle" | "loading" | "error">("idle");
-  const [sourceCatalogRetry, setSourceCatalogRetry] = useState(0);
-  const [sourceFridgeIndexRetry, setSourceFridgeIndexRetry] = useState(0);
   const [sourceCatalogDetail, setSourceCatalogDetail] = useState<SourceRecipeCatalogItem | null>(null);
   const [activeLibraryResultGroup, setActiveLibraryResultGroup] = useState<LibraryResultGroup | null>(null);
   const [sourceRecipeDetail, setSourceRecipeDetail] = useState<SourceRecipeDetail | null>(null);
-  const [sourceRecipeLoad, setSourceRecipeLoad] = useState<"idle" | "loading" | "error">("idle");
+  const sourceRecipeLoad = (): "idle" | "loading" | "error" => "idle";
   const [selectedServingSourceId, setSelectedServingSourceId] = useState("");
   const sourceDetailRequest = useRef(0);
   useEffect(() => {
@@ -726,26 +753,10 @@ function App() {
       }).catch(() => {});
     return () => controller.abort();
   }, [page, cookingTips]);
-  const [sourceAgeFilter, setSourceAgeFilter] = useState("");
-  const [sourceIngredientMode, setSourceIngredientMode] = useState<"any" | "all" | "">("");
   const allLibraryRecipes = useMemo(() => [...libraryRecipes, ...(knorrRecipes ?? [])], [knorrRecipes]);
   const [recommendationMatchFilter, setRecommendationMatchFilter] = useState<"all" | "high" | "medium" | "low">("all");
   const [recommendationMatchedOnly, setRecommendationMatchedOnly] = useState(false);
   const [recommendationLimit, setRecommendationLimit] = useState(RECOMMENDATION_PAGE_SIZE);
-  useEffect(() => {
-    if ((page !== "explore" && !(page === "home" && homeFeatureShufflePending)) || sourceCatalog) return;
-    let cancelled = false;
-    const controller = new AbortController();
-    setSourceCatalogLoad("loading");
-    fetch("/data/dinhduong2598-recipe-catalog.json", { signal: controller.signal })
-      .then((response) => { if (!response.ok) throw new Error("catalog request failed"); return response.json(); })
-      .then((data: unknown) => {
-        if (!Array.isArray(data) || data.length === 0 || new Set(data.map((item) => item?.canonical_recipe_id)).size !== data.length) throw new Error("deduplicated catalog validation failed");
-        if (!cancelled) { setSourceCatalog(data as SourceRecipeCatalogItem[]); setSourceCatalogLoad("idle"); }
-      })
-      .catch(() => { if (!cancelled) setSourceCatalogLoad("error"); });
-    return () => { cancelled = true; controller.abort(); };
-  }, [page, sourceCatalog, sourceCatalogRetry, homeFeatureShufflePending]);
   useEffect(() => {
     const savedNeedsMnnm = page === "favorites" && favorites.some((id) => id.startsWith("monngonmoingay:"));
     if ((page !== "explore" && page !== "fridge" && !(page === "home" && homeFeatureShufflePending) && !savedNeedsMnnm) || mnnmCatalog) return;
@@ -799,21 +810,7 @@ function App() {
       .catch(() => { if (!cancelled) setKnorrLoad("error"); });
     return () => { cancelled = true; controller.abort(); };
   }, [page, stock.length, favorites, knorrRecipes, knorrRetry, homeFeatureShufflePending]);
-  useEffect(() => {
-    if (page !== "fridge" && page !== "explore" && !(page === "home" && stock.length > 0)) return;
-    let cancelled = false;
-    const controller = new AbortController();
-    setSourceFridgeIndexLoad("loading");
-    fetch("/data/dinhduong2598-fridge-index.json", { signal: controller.signal })
-      .then((response) => { if (!response.ok) throw new Error("fridge index request failed"); return response.json(); })
-      .then((data: unknown) => {
-        if (!Array.isArray(data) || data.length > 561 || new Set(data.map((item) => item?.canonical_recipe_id)).size !== data.length || data.some((item) => item?.quality_status !== "complete" || !item?.has_instructions || !item?.has_ingredients || !Array.isArray(item?.ingredients) || item.ingredients.length === 0)) throw new Error("fridge index validation failed");
-        if (!cancelled) { setSourceFridgeIndex(data as SourceFridgeIndexItem[]); setSourceFridgeIndexLoad("ready"); }
-      })
-      .catch(() => { if (!cancelled) setSourceFridgeIndexLoad("error"); });
-    return () => { cancelled = true; controller.abort(); };
-  }, [page, stock.length, sourceFridgeIndexRetry]);
-  useEffect(() => { setLibraryLimit(30); }, [libraryQuery, libraryCategory, libraryStatus, librarySourceFilter, libraryDiet, libraryQuickOnly, sourceAgeFilter, sourceIngredientMode]);
+  useEffect(() => { setLibraryLimit(30); }, [libraryQuery, libraryCategory, libraryStatus, librarySourceFilter, libraryDiet, libraryQuickOnly]);
   useEffect(() => {
     try {
       if (!migrateLocalStorage(localStorage)) setStorageWarning("Phiên bản dữ liệu lưu cao hơn ứng dụng này; ứng dụng giữ nguyên dữ liệu để tránh ghi đè.");
@@ -840,30 +837,6 @@ function App() {
     () => { if (canPersist && !persist("fridge-cooked", cooked)) setStorageWarning("Không thể lưu lịch sử nấu trên thiết bị."); },
     [cooked, canPersist],
   );
-  useEffect(() => {
-    if (!sourceCatalog?.length) return;
-    const aliases = new Map<string, string>();
-    for (const item of sourceCatalog) for (const oldId of item.legacy_canonical_ids ?? []) {
-      aliases.set(`dinhduong2598:${oldId}`, `dinhduong2598:${item.canonical_recipe_id ?? item.id}`);
-    }
-    setFavorites((items) => migrateCanonicalIdList(items, aliases));
-    setHistory((items) => migrateCanonicalIdList(items, aliases));
-    setCooked((items) => migrateCanonicalIdList(items, aliases));
-  }, [sourceCatalog]);
-  useEffect(() => {
-    let active = true;
-    fetch("/data/canonical-recipe-id-aliases.json").then((response) => {
-      if (!response.ok) throw new Error(`Alias map unavailable (${response.status})`);
-      return response.json() as Promise<Record<string, string>>;
-    }).then((mapping) => {
-      if (!active) return;
-      const aliases = new Map(Object.entries(mapping).map(([oldId, newId]) => [`dinhduong2598:${oldId}`, `dinhduong2598:${newId}`]));
-      setFavorites((items) => migrateCanonicalIdList(items, aliases));
-      setHistory((items) => migrateCanonicalIdList(items, aliases));
-      setCooked((items) => migrateCanonicalIdList(items, aliases));
-    }).catch(() => { /* Keep stored IDs intact when the migration map cannot load. */ });
-    return () => { active = false; };
-  }, []);
   useEffect(() => {
     if (page !== "trending") {
       setActiveTrendingVideoId(null);
@@ -1009,7 +982,7 @@ function App() {
     })())
   )).sort((a, b) => (a.expiresAt ?? "9999-12-31").localeCompare(b.expiresAt ?? "9999-12-31")).slice(0, 4), [stock]);
   const ingredientIndex = useMemo(() => buildIngredientIndex(ingredients), [ingredientCatalogVersion]);
-  const sourceEngineRecipes = useMemo(() => (sourceFridgeIndex ?? []).map((item) => sourceFridgeIndexToEngineRecipe({ ...item, has_instructions: item.has_instructions || !!getSourceInstructionSupplement(item.id) })), [sourceFridgeIndex]);
+  const sourceEngineRecipes = useMemo(() => [], []);
   const mnnmEngineRecipes = useMemo(() => (mnnmCatalog ?? []).filter((item) => item.has_ingredients && item.ingredient_names.length > 0).map((item) => ({
     id: item.id, name: item.name, ingredients: item.ingredient_names.map((name) => ({ ingredientId: name, sourceName: name, quantity: null, unit: "", optional: false })),
     method: "", totalTime: durationMinutes(item.total_time), servings: item.servings ? Number(item.servings.match(/\d+/)?.[0] ?? 0) || null : null,
@@ -1035,14 +1008,7 @@ function App() {
   const isAfternoonSnackTime = clockNow.getHours() >= 13 && clockNow.getHours() < 17;
   const homeMealLabel = clockNow.getHours() < 11 ? "Bữa sáng nhà mình" : isAfternoonSnackTime ? "Bữa xế nhà mình" : clockNow.getHours() < 17 ? "Bữa trưa nhà mình" : "Bữa tối nhà mình";
   const homeDate = new Intl.DateTimeFormat("vi-VN", { weekday: "long", day: "numeric", month: "long" }).format(clockNow);
-  const sourceRecommendationCards = useMemo(() => (sourceFridgeIndex ?? []).map((item): Recipe => ({
-    id: `dinhduong2598:${item.canonical_recipe_id ?? item.id}`, slug: item.id, name: item.name, emoji: "🍲", description: "", category: item.category ?? "Món nguồn",
-    cuisine: "vietnamese", method: "", minutes: null, preparationTime: null, cookingTime: null, totalTime: null,
-    difficulty: "Chưa đánh giá", servings: null, required: item.ingredients.map((entry) => entry.name), optional: [],
-    ingredients: item.ingredients.map((entry) => ({ ingredientId: entry.name, sourceName: entry.name, quantity: entry.quantity_value, unit: entry.quantity_unit ?? "", note: entry.quantity_raw ?? undefined, optional: false })),
-    steps: [], equipment: [], tips: [], tags: [], source: { type: "website", url: item.source_url ?? undefined, title: "Dinh dưỡng 2598 · đầy đủ theo kiểm tra tự động" },
-    verificationStatus: "unverified", dataStatus: item.has_instructions || !!getSourceInstructionSupplement(item.id) ? "full_recipe" : "ingredients_only",
-  })), [sourceFridgeIndex]);
+  const sourceRecommendationCards: Recipe[] = [];
   const mnnmRecipeCards = useMemo(() => (mnnmCatalog ?? []).filter((item) => item.has_ingredients && item.ingredient_names.length > 0).map((item) => mnnmRecipeFor(item)), [mnnmCatalog]);
   const recipeById = useMemo(() => new Map([...allLibraryRecipes, ...sourceRecommendationCards, ...mnnmRecipeCards].map((recipe) => [recipe.id, recipe])), [sourceRecommendationCards, allLibraryRecipes, mnnmRecipeCards]);
   const matchesNonMeatFilter = (names: string[]) => names.length > 0 && names.every((name) => {
@@ -1080,23 +1046,11 @@ function App() {
     return matchesQuery && (savedFilter === "all" || (savedFilter === "ready" ? isReadyByName : !isReadyByName));
   }), [favorites, recipeById, savedQuery, savedFilter, ids]);
   const savedReadyCount = favorites.map((id) => recipeById.get(id)).filter((recipe): recipe is Recipe => Boolean(recipe)).filter((recipe) => recipe.required.length > 0 && recipe.required.every((id) => ids.has(id))).length;
-  const sourceFeatureRecipes = useMemo(() => (sourceCatalog ?? []).filter((item) => item.has_instructions && item.has_ingredients && (item.ingredients?.length ?? 0) > 0).map((item): Recipe => {
-    const ingredientsForRecipe = item.ingredients ?? [];
-    return {
-      id: `dinhduong2598:${item.canonical_recipe_id ?? item.id}`, slug: item.id, name: item.name, emoji: "🍲", description: "", category: item.category ?? "Món nguồn",
-      cuisine: "vietnamese", method: "", minutes: null, preparationTime: null, cookingTime: null, totalTime: null,
-      difficulty: "Chưa đánh giá", servings: null, required: ingredientsForRecipe, optional: [],
-      ingredients: ingredientsForRecipe.map((name, index) => ({ ingredientId: `${item.canonical_recipe_id ?? item.id}:ingredient-${index}`, sourceName: name, quantity: null, unit: "", optional: false, role: "required" as const })),
-      steps: [], equipment: [], tips: [], tags: item.category_labels ?? [],
-      source: { type: "website", url: item.source_url ?? undefined, title: "Dinh dưỡng 2598" },
-      verificationStatus: "unverified", dataStatus: "full_recipe",
-    };
-  }), [sourceCatalog]);
-  const homeFeatureSourcesReady = (sourceCatalog !== null || sourceCatalogLoad === "error")
-    && (mnnmCatalog !== null || mnnmLoad === "error")
+  const sourceFeatureRecipes: Recipe[] = [];
+  const homeFeatureSourcesReady = (mnnmCatalog !== null || mnnmLoad === "error")
     && (knorrRecipes !== null || knorrLoad === "error");
   const homeFeatureRecipes = useMemo(() => {
-    const sourcePriority = (recipe: Recipe) => recipe.source.title === "Món Ngon Mỗi Ngày" ? 0 : recipe.source.title === "Knorr Việt Nam" ? 1 : recipe.id.startsWith("dinhduong2598:") ? 2 : 3;
+    const sourcePriority = (recipe: Recipe) => recipe.source.title === "Món Ngon Mỗi Ngày" ? 0 : recipe.source.title === "Knorr Việt Nam" ? 1 : 2;
     const allCandidates = [...new Map([
       ...sourceFeatureRecipes,
       ...recipeById.values(),
@@ -1105,7 +1059,7 @@ function App() {
       ...favorites.map((id) => recipeById.get(id)).filter((recipe): recipe is Recipe => Boolean(recipe)),
       ...recentRecipeIds.map((id) => recipeById.get(id)).filter((recipe): recipe is Recipe => Boolean(recipe)),
       ...allLibraryRecipes,
-    ].filter((recipe) => recipe.steps.length > 0 || (recipe.dataStatus === "full_recipe" && (recipe.source.title === "Món Ngon Mỗi Ngày" || recipe.id.startsWith("dinhduong2598:")))).map((recipe) => [recipe.id, recipe])).values()]
+    ].filter((recipe) => recipe.steps.length > 0 || (recipe.dataStatus === "full_recipe" && recipe.source.title === "Món Ngon Mỗi Ngày")).map((recipe) => [recipe.id, recipe])).values()]
       .sort((a, b) => sourcePriority(a) - sourcePriority(b));
     const canonicalCandidates = new Map<string, Recipe>();
     for (const recipe of allCandidates) {
@@ -1299,18 +1253,10 @@ function App() {
       const item = mnnmCatalog?.find((entry) => entry.id === r.id) ?? mnnmRecent.find((entry) => entry.id === r.id);
       if (item) { openMnnmRecipe(item, preserveVariantGroup); return; }
     }
-    if (r.id.startsWith("dinhduong2598:")) {
-      const canonicalId = r.id.slice("dinhduong2598:".length);
-      const catalogItem = sourceCatalog?.find((entry) => (entry.canonical_recipe_id ?? entry.id) === canonicalId);
-      const fridgeItem = sourceFridgeIndex?.find((entry) => (entry.canonical_recipe_id ?? entry.id) === canonicalId);
-      const item = catalogItem ?? (fridgeItem ? sourceFridgeIndexToCatalogItem(fridgeItem) : undefined);
-      if (item) { openSourceCatalogItem(item, preserveVariantGroup); return; }
-    }
     if (!preserveVariantGroup) setActiveLibraryResultGroup(null);
     sourceDetailRequest.current += 1;
     setSourceCatalogDetail(null);
     setSourceRecipeDetail(null);
-    setSourceRecipeLoad("idle");
     setMnnmRecipeSelection(null);
     setMnnmRecipeDetail(null);
     setMnnmDetailLoad("idle");
@@ -1318,58 +1264,11 @@ function App() {
     setDone([]);
     setHistory((h) => recordRecentRecipe(h, r.id));
   }
-  function openSourceCatalogItem(item: SourceRecipeCatalogItem, preserveVariantGroup = false) {
-    if (!preserveVariantGroup) setActiveLibraryResultGroup(null);
-    const requestId = ++sourceDetailRequest.current;
-    setMnnmRecipeSelection(null);
-    setMnnmRecipeDetail(null);
-    setMnnmDetailLoad("idle");
-    setSourceCatalogDetail(item);
-    setSourceRecipeDetail(null);
-    setSourceRecipeLoad("loading");
-    setSelectedServingSourceId("");
-    const recipe: Recipe = {
-      id: `dinhduong2598:${item.canonical_recipe_id ?? item.id}`, slug: item.id, name: item.name, emoji: "🍲", description: "", category: item.category ?? "Nhóm món chưa rõ", cuisine: "vietnamese", method: "",
-      minutes: null, preparationTime: null, cookingTime: null, totalTime: null, difficulty: "Chưa đánh giá", servings: null,
-      required: [], optional: [], ingredients: [],
-      steps: [], equipment: [], tips: [], tags: [], source: { type: "website", url: item.source_url ?? undefined, title: "Dinh dưỡng 2598 · danh mục nguồn" },
-      verificationStatus: "unverified", dataStatus: "catalog_only",
-    };
-    setModal(recipe);
-    setDone([]);
-    setHistory((items) => recordRecentRecipe(items, recipe.id));
-    loadSourceRecipeDetail(item).then((detail) => {
-      if (sourceDetailRequest.current !== requestId) return;
-      setSourceRecipeDetail(detail);
-      setSelectedServingSourceId(detail.id);
-      setSourceRecipeLoad("idle");
-      const ingredientsForRecipe = (detail.ingredients ?? []).map((entry) => ({
-        ingredientId: entry.name,
-        sourceName: entry.name,
-        quantity: entry.quantity_value ?? null,
-        unit: entry.quantity_unit ?? "",
-        note: entry.quantity_raw ?? undefined,
-        optional: false,
-        role: "required" as const,
-      }));
-      setModal({ ...recipe,
-        description: detail.detail_name && detail.detail_name !== detail.name ? detail.detail_name : "",
-        category: detail.category ?? recipe.category,
-        servings: null,
-        ingredients: ingredientsForRecipe,
-        required: ingredientsForRecipe.map((entry) => entry.ingredientId),
-        steps: detail.instructions_raw?.trim() ? sourceInstructionParagraphs(detail.instructions_raw).map((instruction, order) => ({ order: order + 1, instruction })) : [],
-        source: { ...recipe.source, url: detail.source_url ?? item.source_url ?? undefined },
-        dataStatus: detail.instructions_raw?.trim() ? "full_recipe" : "catalog_only",
-      });
-    }).catch(() => { if (sourceDetailRequest.current === requestId) setSourceRecipeLoad("error"); });
-  }
   function openMnnmRecipe(item: MnnmCatalogItem, preserveVariantGroup = false) {
     if (!preserveVariantGroup) setActiveLibraryResultGroup(null);
     const requestId = ++sourceDetailRequest.current;
     setSourceCatalogDetail(null);
     setSourceRecipeDetail(null);
-    setSourceRecipeLoad("idle");
     setSelectedServingSourceId("");
     setMnnmRecipeSelection(item);
     setMnnmRecipeDetail(null);
@@ -1386,34 +1285,13 @@ function App() {
       if (sourceDetailRequest.current === requestId) setMnnmDetailLoad("error");
     });
   }
+  function openSourceCatalogItem(_item: SourceRecipeCatalogItem, _preserveVariantGroup = false) { return; }
+  function selectSourceServingOption(_item: SourceRecipeCatalogItem, _sourceRecipeId: string) { return; }
   function openLibraryCandidate(group: LibraryResultGroup, candidate: LibraryResultEntry = group.primary) {
     setActiveLibraryResultGroup(group);
     if (candidate.kind === "recipe") openRecipe(candidate.recipe, true);
     else if (candidate.kind === "source") openSourceCatalogItem(candidate.item, true);
     else openMnnmRecipe(candidate.item, true);
-  }
-  function selectSourceServingOption(item: SourceRecipeCatalogItem, sourceRecipeId: string) {
-    const option = item.serving_options?.find((serving) => serving.sourceRecipeId === sourceRecipeId);
-    if (!option || sourceRecipeId === sourceRecipeDetail?.id) return;
-    const requestId = ++sourceDetailRequest.current;
-    setSelectedServingSourceId(sourceRecipeId);
-    setSourceRecipeDetail(null);
-    setSourceRecipeLoad("loading");
-    loadSourceRecipeDetail({ id: option.sourceRecipeId, detail_shard: option.detailShard }).then((detail) => {
-      if (sourceDetailRequest.current !== requestId) return;
-      setSourceRecipeDetail(detail);
-      setSourceRecipeLoad("idle");
-      setModal((current) => current ? {
-        ...current,
-        description: detail.detail_name && detail.detail_name !== detail.name ? detail.detail_name : "",
-        category: detail.category ?? current.category,
-        ingredients: (detail.ingredients ?? []).map((entry) => ({ ingredientId: entry.name, sourceName: entry.name, quantity: entry.quantity_value ?? null, unit: entry.quantity_unit ?? "", note: entry.quantity_raw ?? undefined, optional: false, role: "required" as const })),
-        required: (detail.ingredients ?? []).map((entry) => entry.name),
-        steps: detail.instructions_raw?.trim() ? sourceInstructionParagraphs(detail.instructions_raw).map((instruction, order) => ({ order: order + 1, instruction })) : [],
-        source: { ...current.source, url: detail.source_url ?? item.source_url ?? undefined },
-        dataStatus: detail.instructions_raw?.trim() ? "full_recipe" : "catalog_only",
-      } : current);
-    }).catch(() => { if (sourceDetailRequest.current === requestId) setSourceRecipeLoad("error"); });
   }
   function saveVideoLink() {
     const parsed = parseSupportedVideoUrl(videoUrlDraft);
@@ -1692,23 +1570,8 @@ function App() {
             ? "Đang nấu"
           : "Sở thích nấu";
   const shoppingCategoryFor = (name: string) => shoppingIngredientCategory(name, ingredientIndex);
-  const sourceAgeGroups = useMemo(() => [...new Set((sourceCatalog ?? []).flatMap((item) => item.available_age_groups ?? [item.age_group]).filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b, "vi")), [sourceCatalog]);
-  const sourcePantryNames = stock.map((item) => item.name ?? nameFor(item.id));
-  const sourceCatalogResults = useMemo(() => (["mnnm", "knorr", "internal", "copper"].includes(librarySourceFilter) ? [] : filterSourceRecipeCatalog(sourceCatalog ?? [], {
-    query: libraryQuery,
-    category: libraryCategory === "Tất cả" ? "" : libraryCategory,
-    ageGroup: sourceAgeFilter,
-    pantryIngredients: sourceIngredientMode ? sourcePantryNames : [],
-    pantryMode: sourceIngredientMode || "any",
-  }).filter((item) => {
-    const status = item.has_instructions ? "full_recipe" : item.has_ingredients ? "ingredients_only" : "catalog_only";
-    if (libraryStatus !== "Tất cả" && status !== libraryStatus) return false;
-    if (libraryQuickOnly) return false;
-    if (libraryDiet && !matchesNonMeatFilter(item.ingredients ?? [])) return false;
-    return true;
-  })), [sourceCatalog, libraryQuery, libraryCategory, sourceAgeFilter, sourceIngredientMode, sourcePantryNames, libraryStatus, libraryDiet, libraryQuickOnly, librarySourceFilter, ingredientIndex]);
   const librarySourceResults = allLibraryRecipes.filter((recipe) => {
-    if (librarySourceFilter === "mnnm" || librarySourceFilter === "dinhduong2598") return false;
+    if (librarySourceFilter === "mnnm") return false;
     if (librarySourceFilter === "knorr" && recipe.source.title !== "Knorr Việt Nam") return false;
     if (librarySourceFilter === "internal" && (recipe.id.startsWith("copper:") || recipe.source.title === "Knorr Việt Nam")) return false;
     if (librarySourceFilter === "copper" && !recipe.id.startsWith("copper:")) return false;
@@ -1734,10 +1597,10 @@ function App() {
   });
   const mnnmCategories = [...new Set((mnnmCatalog ?? []).map((item) => item.category))];
   const knorrCategories = (knorrRecipes ?? []).map((recipe) => recipe.category);
-  const libraryCategories = ["Tất cả", ...new Set([...allLibraryRecipes.map((recipe) => recipe.category), ...(sourceCatalog ?? []).flatMap((item) => item.category_labels ?? [item.category]).filter((value): value is string => Boolean(value)), ...mnnmCategories, ...knorrCategories])];
+  const libraryCategories = ["Tất cả", ...new Set([...allLibraryRecipes.map((recipe) => recipe.category), ...mnnmCategories, ...knorrCategories])];
   const homeFilterDefinitions = [
     { id: "category" as const, label: "Nhóm món", selected: libraryCategory, options: libraryCategories.map((value) => ({ value, label: value })) },
-    { id: "source" as const, label: "Nguồn công thức", selected: ({ all: "Tất cả nguồn", internal: "Nội bộ", copper: "Copper", dinhduong2598: "Dinh dưỡng 2598", mnnm: "Món Ngon Mỗi Ngày", knorr: "Knorr Việt Nam", other: "Nguồn khác" } as const)[librarySourceFilter], options: [{ value: "all", label: "Tất cả nguồn" }, { value: "internal", label: "Nội bộ" }, { value: "copper", label: "Copper" }, { value: "dinhduong2598", label: "Dinh dưỡng 2598" }, { value: "mnnm", label: "Món Ngon Mỗi Ngày" }, { value: "knorr", label: "Knorr Việt Nam" }, { value: "other", label: "Nguồn khác" }] },
+    { id: "source" as const, label: "Nguồn công thức", selected: ({ all: "Tất cả nguồn", internal: "Nội bộ", copper: "Copper", mnnm: "Món Ngon Mỗi Ngày", knorr: "Knorr Việt Nam", other: "Nguồn khác" } as const)[librarySourceFilter], options: [{ value: "all", label: "Tất cả nguồn" }, { value: "internal", label: "Nội bộ" }, { value: "copper", label: "Copper" }, { value: "mnnm", label: "Món Ngon Mỗi Ngày" }, { value: "knorr", label: "Knorr Việt Nam" }, { value: "other", label: "Nguồn khác" }] },
     { id: "instructions" as const, label: "Hướng dẫn", selected: ({ "Tất cả": "Tất cả", full_recipe: "Có hướng dẫn", ingredients_only: "Chỉ có nguyên liệu", catalog_only: "Chỉ có tên món" } as const)[libraryStatus as "Tất cả" | "full_recipe" | "ingredients_only" | "catalog_only"], options: [{ value: "Tất cả", label: "Tất cả" }, { value: "full_recipe", label: "Có hướng dẫn" }, { value: "ingredients_only", label: "Chỉ có nguyên liệu" }, { value: "catalog_only", label: "Chỉ có tên món" }] },
   ];
   const exploreMethodCategories = ["Món canh", "Món kho", "Món xào", "Món nước", "Món ăn nhẹ", "Món chay"]
@@ -1745,7 +1608,6 @@ function App() {
     .filter((category): category is string => Boolean(category));
   const libraryCandidates: LibraryResultEntry[] = [
     ...librarySourceResults.map((recipe) => ({ kind: "recipe" as const, key: recipe.id, recipe, name: recipe.name })),
-    ...sourceCatalogResults.map((item) => ({ kind: "source" as const, key: `dinhduong2598:${item.canonical_recipe_id ?? item.id}`, item, name: item.name })),
     ...mnnmCatalogResults.map((item) => ({ kind: "mnnm" as const, key: item.id, item, name: item.name })),
   ];
   const sortedLibraryCandidates = libraryCandidates.sort((a, b) => {
@@ -1828,7 +1690,16 @@ function App() {
             </section>
             {homeFeaturedRecipe ? <section className="home-feature" aria-label="Món ăn gợi ý hôm nay">
               <button className="home-feature-image" data-emoji={homeFeaturedRecipe.emoji} onClick={() => openRecipe(homeFeaturedRecipe)} aria-label={`Mở món ${homeFeaturedRecipe.name}`}>
-                {homeFeaturedRecipe.imageUrl ? <img src={homeFeaturedRecipe.imageUrl} alt={`Ảnh món ${homeFeaturedRecipe.name}`} decoding="async" onLoad={(event) => preferHigherResolutionImage(event, homeFeaturedRecipe.imageFallbacks)} onError={(event) => fallbackRecipeSourceImage(event, homeFeaturedRecipe)}/> : recipeImageFor(homeFeaturedRecipe.id) ? <img src={recipeImageFor(homeFeaturedRecipe.id)!.imagePath} alt={recipeImageFor(homeFeaturedRecipe.id)!.imageType === "ai_illustration" ? `Ảnh minh họa AI cho món ${homeFeaturedRecipe.name}` : `Ảnh ${homeFeaturedRecipe.name}`} decoding="async" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/> : <span aria-hidden="true">{homeFeaturedRecipe.emoji}</span>}
+                {(() => {
+                  const localImage = recipeImageFor(homeFeaturedRecipe.id);
+                  if (localImage) {
+                    return <img src={localImage.imagePath} alt={`Ảnh món ${homeFeaturedRecipe.name}`} decoding="async" fetchPriority="high" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/>;
+                  }
+                  if (homeFeaturedRecipe.imageUrl) {
+                    return <img src={homeFeaturedRecipe.imageUrl} alt={`Ảnh món ${homeFeaturedRecipe.name}`} decoding="async" fetchPriority="high" referrerPolicy="no-referrer" onError={(event) => fallbackRecipeSourceImage(event, homeFeaturedRecipe)}/>;
+                  }
+                  return <span aria-hidden="true">{homeFeaturedRecipe.emoji}</span>;
+                })()}
               </button>
               <span className="home-feature-kicker">{stock.length ? "GỢI Ý TỪ TỦ LẠNH" : homeNewestFeatured ? "MÓN MỚI NHẤT TỪ MÓN NGON MỖI NGÀY" : "MÓN THAM KHẢO HÔM NAY"}</span>
               {homeFeatureOptions.length > 1 && <button type="button" className={`home-feature-refresh${homeFeatureShufflePending ? " is-loading" : ""}`} disabled={homeFeatureShufflePending} onClick={shuffleHomeFeature} aria-label={homeFeatureShufflePending ? "Đang tải món từ các nguồn" : "Đổi món gợi ý ngẫu nhiên"} title={homeFeatureShufflePending ? "Đang tải món từ các nguồn" : "Đổi món ngẫu nhiên"}><RefreshCw size={15}/></button>}
@@ -1845,10 +1716,10 @@ function App() {
               {homeMealCandidates.length ? <div className="home-meal-card">
                 <div className="home-meal-list">{homeMealCandidates.map((recipe) => {
                   const image = recipeImageFor(recipe.id);
-                  const thumbnail = image?.cardImagePath ?? image?.imagePath ?? recipe.imageUrl;
+                  const thumbnail = (image as any)?.thumbPath ?? image?.cardImagePath ?? image?.imagePath ?? recipe.imageUrl;
                   return <article className="home-meal-row" key={recipe.id}>
                     <button className="home-meal-recipe" onClick={() => openRecipe(recipe)}>
-                      <span className="home-meal-image">{thumbnail ? <img src={thumbnail} alt={image?.imageType === "ai_illustration" ? `Ảnh minh họa AI cho món ${recipe.name}` : `Ảnh ${recipe.name}`} loading="lazy" decoding="async" onLoad={(event) => preferHigherResolutionImage(event, recipe.imageFallbacks)} onError={(event) => fallbackRecipeSourceImage(event, recipe)}/> : <span>{recipe.emoji}</span>}</span>
+                      <span className="home-meal-image">{thumbnail ? <img src={thumbnail} alt={image?.imageType === "ai_illustration" ? `Ảnh minh họa AI cho món ${recipe.name}` : `Ảnh ${recipe.name}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event) => fallbackRecipeSourceImage(event, recipe)}/> : <span>{recipe.emoji}</span>}</span>
                       <span className="home-meal-copy"><small>{recipe.category}{recipe.totalTime != null ? ` · ${recipe.totalTime} phút` : ""}</small><b>{recipe.name}</b></span>
                     </button>
                     <button className="home-meal-open" onClick={() => openRecipe(recipe)} aria-label={`Xem ${recipe.name}`}><ChevronRight size={18}/></button>
@@ -1942,9 +1813,8 @@ function App() {
               <div className="fridge-ready-track">{recommendationsByCategory.ready.slice(0, 4).map((item) => {
                 const recipe = recipeById.get(item.recipeId);
                 if (!recipe) return null;
-                const sourceItem = recipe.id.startsWith("dinhduong2598:") ? sourceFridgeIndex?.find((entry) => `dinhduong2598:${entry.canonical_recipe_id ?? entry.id}` === recipe.id) : undefined;
                 const image = recipe.source.title === "Knorr Việt Nam" ? undefined : recipeImageFor(recipe.id);
-                return <button className="fridge-ready-card" key={recipe.id} onClick={() => sourceItem ? openSourceCatalogItem(sourceFridgeIndexToCatalogItem(sourceItem)) : openRecipe(recipe)}>
+                return <button className="fridge-ready-card" key={recipe.id} onClick={() => openRecipe(recipe)}>
                   <span className="fridge-ready-image">{image ? <img src={image.cardImagePath ?? image.imagePath} alt={image.imageType === "ai_illustration" ? `Ảnh minh họa AI cho món ${recipe.name}` : `Ảnh ${recipe.name}`} loading="lazy" decoding="async"/> : <span>{recipe.emoji}</span>}{recipe.totalTime != null && <small><Clock size={12}/>{recipe.totalTime} phút</small>}</span>
                   <span className="fridge-ready-copy"><b>{recipe.name}</b><small>{item.matchedIngredients.length} tên nguyên liệu khớp · {recipe.dataStatus === "full_recipe" && recipe.steps.length ? "Có hướng dẫn" : "Cần xem dữ liệu món"}</small></span>
                 </button>;
@@ -2098,9 +1968,6 @@ function App() {
                     ? `${ids.size} nguyên liệu còn dùng được · alias khớp chính xác, có xét hạn dùng · định lượng chỉ báo khi cùng đơn vị`
                     : "Chưa có nguyên liệu trong tủ. Bạn vẫn có thể tìm món và xem công thức."}
                 </p>
-              {sourceFridgeIndexLoad === "ready" && <small>{allLibraryRecipes.length + sourceFridgeIndex!.length} món tham gia tìm kiếm · {sourceFridgeIndex!.length} món nguồn qua kiểm tra tự động, cần xác minh thủ công.</small>}
-              {sourceFridgeIndexLoad === "loading" && <small role="status">Đang tải chỉ mục gợi ý món nguồn…</small>}
-              {sourceFridgeIndexLoad === "error" && <small role="alert">Chưa tải được chỉ mục món nguồn. <button className="text-button" onClick={() => setSourceFridgeIndexRetry((value) => value + 1)}>Thử tải lại</button></small>}
               </div>
             </section>
             {flexibleSuggestions.length > 0 && <FlexibleSuggestionPanel recipes={flexibleSuggestions} onOpen={openRecipe}/>}
@@ -2118,7 +1985,7 @@ function App() {
                 <summary><SlidersHorizontal size={16}/> Bộ lọc <span>{libraryCategory !== "Tất cả" || librarySourceFilter !== "all" || libraryStatus !== "Tất cả" || libraryDiet || libraryQuickOnly || recommendationMatchFilter !== "all" || recommendationMatchedOnly ? "Đang áp dụng" : "Tùy chọn"}</span></summary>
                 <div className="recommendation-filter-grid">
                 <label><span>Nhóm món</span><select id="fridge-recommendation-category" name="fridge-recommendation-category" aria-label="Lọc gợi ý theo nhóm món" value={libraryCategory} onChange={(event) => setLibraryCategory(event.target.value)}><option value="Tất cả">Tất cả nhóm món</option>{recommendationCategories.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
-                <label><span>Nguồn công thức</span><select id="fridge-recommendation-source" name="fridge-recommendation-source" aria-label="Lọc gợi ý theo nguồn" value={librarySourceFilter} onChange={(event) => setLibrarySourceFilter(event.target.value as typeof librarySourceFilter)}><option value="all">Tất cả nguồn</option><option value="internal">Nội bộ</option><option value="copper">Copper</option><option value="dinhduong2598">Dinh dưỡng 2598</option><option value="mnnm">Món Ngon Mỗi Ngày</option><option value="knorr">Knorr</option><option value="other">Nguồn khác</option></select></label>
+                <label><span>Nguồn công thức</span><select id="fridge-recommendation-source" name="fridge-recommendation-source" aria-label="Lọc gợi ý theo nguồn" value={librarySourceFilter} onChange={(event) => setLibrarySourceFilter(event.target.value as typeof librarySourceFilter)}><option value="all">Tất cả nguồn</option><option value="internal">Nội bộ</option><option value="copper">Copper</option><option value="mnnm">Món Ngon Mỗi Ngày</option><option value="knorr">Knorr</option><option value="other">Nguồn khác</option></select></label>
                 <label><span>Hướng dẫn</span><select aria-label="Lọc theo trạng thái hướng dẫn" value={libraryStatus} onChange={(event) => setLibraryStatus(event.target.value)}><option value="Tất cả">Tất cả</option><option value="full_recipe">Có hướng dẫn</option><option value="ingredients_only">Chỉ có nguyên liệu</option><option value="catalog_only">Chỉ có tên món</option></select></label>
                 <label><span>Mức khớp nguyên liệu</span><select id="fridge-recommendation-match" name="fridge-recommendation-match" aria-label="Lọc gợi ý theo mức khớp nguyên liệu" value={recommendationMatchFilter} onChange={(event) => setRecommendationMatchFilter(event.target.value as typeof recommendationMatchFilter)}><option value="all">Tất cả mức khớp</option><option value="high">Cao · từ 75%</option><option value="medium">Vừa · 40–74%</option><option value="low">Thấp · dưới 40%</option></select></label>
                 <label className="recommendation-matched-toggle"><input id="fridge-recommendation-matched-only" name="fridge-recommendation-matched-only" type="checkbox" checked={recommendationMatchedOnly} onChange={(event) => setRecommendationMatchedOnly(event.target.checked)}/> Có ít nhất 1 nguyên liệu trong tủ</label>
@@ -2139,8 +2006,7 @@ function App() {
                 {visibleRecommendations.map((item) => {
                   const recipe = recipeById.get(item.recipeId);
                   if (!recipe) return null;
-                  const sourceItem = item.recipeId.startsWith("dinhduong2598:") ? sourceFridgeIndex?.find((entry) => `dinhduong2598:${entry.canonical_recipe_id ?? entry.id}` === item.recipeId) : undefined;
-                  return <RecipeCard key={recipe.id} recipe={recipe} missing={item.missingIngredients} owned={item.matchedIngredients} ratio={item.matchPercentage} urgent={item.urgent} quantityStatus={item.quantityStatus} score={stock.length ? item.score : undefined} reasons={item.reasons} substitutions={item.substitutions} ingredientName={(id) => recommendationName(recipe, id)} onClick={() => sourceItem ? openSourceCatalogItem(sourceFridgeIndexToCatalogItem(sourceItem)) : openRecipe(recipe)} />;
+                  return <RecipeCard key={recipe.id} recipe={recipe} missing={item.missingIngredients} owned={item.matchedIngredients} ratio={item.matchPercentage} urgent={item.urgent} quantityStatus={item.quantityStatus} score={stock.length ? item.score : undefined} reasons={item.reasons} substitutions={item.substitutions} ingredientName={(id) => recommendationName(recipe, id)} onClick={() => openRecipe(recipe)} />;
                 })}
               </div>
             )}
@@ -2152,17 +2018,10 @@ function App() {
             <div className="library-tools">
               <label className="searchbox library-search"><Search size={17}/><input value={libraryQuery} onChange={(event) => setLibraryQuery(event.target.value)} placeholder="Tìm món hoặc nguyên liệu…"/></label>
               <details className="explore-filter-menu"><summary aria-label="Mở bộ lọc"><SlidersHorizontal size={19}/></summary><div className="explore-filter-popover">
-                <label><span>Nguồn công thức</span><select aria-label="Lọc theo nguồn công thức" value={librarySourceFilter} onChange={(event) => setLibrarySourceFilter(event.target.value as typeof librarySourceFilter)}><option value="all">Tất cả nguồn</option><option value="internal">Nội bộ</option><option value="copper">Copper</option><option value="dinhduong2598">Dinh dưỡng 2598</option><option value="mnnm">Món Ngon Mỗi Ngày</option><option value="knorr">Knorr Việt Nam</option><option value="other">Nguồn khác</option></select></label>
+                <label><span>Nguồn công thức</span><select aria-label="Lọc theo nguồn công thức" value={librarySourceFilter} onChange={(event) => setLibrarySourceFilter(event.target.value as typeof librarySourceFilter)}><option value="all">Tất cả nguồn</option><option value="internal">Nội bộ</option><option value="copper">Copper</option><option value="mnnm">Món Ngon Mỗi Ngày</option><option value="knorr">Knorr Việt Nam</option><option value="other">Nguồn khác</option></select></label>
                 <label><span>Hướng dẫn</span><select aria-label="Lọc trạng thái hướng dẫn" value={libraryStatus} onChange={(event) => setLibraryStatus(event.target.value)}><option>Tất cả</option><option value="full_recipe">Có hướng dẫn</option><option value="ingredients_only">Chỉ có nguyên liệu</option><option value="catalog_only">Chỉ có tên món</option></select></label>
                 <label className="library-diet" title="Chỉ hiện món có dữ liệu hướng dẫn và không có nguyên liệu thuộc nhóm thịt hoặc hải sản."><input type="checkbox" checked={libraryDiet} onChange={(event) => setLibraryDiet(event.target.checked)}/> Không thịt/hải sản</label>
-                <button type="button" className="text-button" onClick={() => { setLibraryQuery(""); setLibraryCategory("Tất cả"); setLibrarySourceFilter("all"); setLibraryStatus("Tất cả"); setLibraryDiet(false); setLibraryQuickOnly(false); setSourceAgeFilter(""); setSourceIngredientMode(""); }}>Xóa bộ lọc</button>
-                <details className="explore-source-filters"><summary>Lọc thêm món Dinh dưỡng 2598</summary>
-                  <div className="source-catalog-controls">
-                    <label><span>Nhóm tuổi từ nguồn</span><select aria-label="Lọc theo nhóm tuổi nguồn" value={sourceAgeFilter} onChange={(event) => setSourceAgeFilter(event.target.value)}><option value="">Tất cả nhóm tuổi</option>{sourceAgeGroups.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
-                    <label><span>Nguyên liệu trong tủ lạnh</span><select aria-label="Lọc theo nguyên liệu trong tủ" value={sourceIngredientMode} disabled={!stock.length} onChange={(event) => setSourceIngredientMode(event.target.value as "" | "any" | "all")}><option value="">Không lọc theo tủ</option><option value="any">Có ít nhất một nguyên liệu đang có ({stock.length})</option><option value="all">Có tất cả nguyên liệu đang có ({stock.length})</option></select></label>
-                  </div>
-                  <p className="source-catalog-note">Các bộ lọc bổ sung này chỉ áp dụng cho món Dinh dưỡng 2598.</p>
-                </details>
+                <button type="button" className="text-button" onClick={() => { setLibraryQuery(""); setLibraryCategory("Tất cả"); setLibrarySourceFilter("all"); setLibraryStatus("Tất cả"); setLibraryDiet(false); setLibraryQuickOnly(false); }}>Xóa bộ lọc</button>
               </div></details>
             </div>
             <div className="explore-quick-chips" aria-label="Lọc nhanh món ăn">{[
@@ -2191,14 +2050,15 @@ function App() {
                 const aiIllustration = image?.imageType === "ai_illustration";
                 const recipeStatus = recipe.dataStatus === "full_recipe" ? recipe.verificationStatus === "verified" ? "Đã xác minh" : "Chưa xác minh" : recipe.dataStatus === "ingredients_only" ? "Thiếu hướng dẫn" : "Thiếu dữ liệu";
                 const meta = [recipe.totalTime ? `${recipe.totalTime} phút` : "", `${recipe.ingredients.length} nguyên liệu`, recipeStatus].filter(Boolean).join(" · ");
-                return <button className="library-card" key={entry.key} onClick={() => openLibraryCandidate(group)}><span className={`library-emoji${image || recipe.imageUrl ? " has-recipe-image" : ""}`} data-emoji={recipe.emoji}>{image ? <img src={image.cardImagePath ?? image.imagePath} alt={aiIllustration ? `Ảnh minh họa AI cho món ${recipe.name}` : `Ảnh món ${recipe.name}`} loading="lazy" decoding="async" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/> : recipe.imageUrl ? <img src={recipe.imageUrl} alt={`Ảnh món ${recipe.name}`} loading="lazy" decoding="async" onLoad={(event) => preferHigherResolutionImage(event, recipe.imageFallbacks)} onError={(event) => fallbackRecipeSourceImage(event, recipe)}/> : recipe.emoji}</span><span className="library-card-content"><span className="library-card-title">{recipe.name}</span><span className="library-card-meta">{aiIllustration ? "Ảnh AI · " : ""}{meta}</span><span className="library-card-cta">Xem chi tiết <ChevronRight size={16}/></span></span></button>;
+                return <button className="library-card" key={entry.key} onClick={() => openLibraryCandidate(group)}><span className={`library-emoji${image || recipe.imageUrl ? " has-recipe-image" : ""}`} data-emoji={recipe.emoji}>{image ? <img src={image.cardImagePath ?? image.imagePath} alt={aiIllustration ? `Ảnh minh họa AI cho món ${recipe.name}` : `Ảnh món ${recipe.name}`} loading="lazy" decoding="async" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/> : recipe.imageUrl ? <img src={recipe.imageUrl} alt={`Ảnh món ${recipe.name}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event) => fallbackRecipeSourceImage(event, recipe)}/> : recipe.emoji}</span><span className="library-card-content"><span className="library-card-title">{recipe.name}</span><span className="library-card-meta">{aiIllustration ? "Ảnh AI · " : ""}{meta}</span><span className="library-card-cta">Xem chi tiết <ChevronRight size={16}/></span></span></button>;
               }
               if (entry.kind === "mnnm") {
                 const item = entry.item;
+                const image = recipeImageFor(item.id);
                 const minutes = durationMinutes(item.total_time);
                 const status = item.has_instructions ? "Chưa xác minh" : item.has_ingredients ? "Thiếu hướng dẫn" : "Thiếu dữ liệu";
                 const meta = [minutes ? `${minutes} phút` : "", `${item.ingredient_count} nguyên liệu`, status].filter(Boolean).join(" · ");
-                return <button className="library-card mnnm-recipe-card" key={entry.key} onClick={() => openLibraryCandidate(group)}><span className={`library-emoji${item.image_url ? " has-recipe-image" : ""}`} data-emoji="🍲">{item.image_url ? <img src={item.image_url} alt={`Ảnh món ${item.name}`} loading="lazy" decoding="async" onLoad={(event) => preferHigherResolutionImage(event, item.image_fallbacks)} onError={(event) => fallbackMnnmImage(event, item)}/> : "🍲"}</span><span className="library-card-content"><span className="library-card-title">{item.name}</span><span className="library-card-meta">{meta}</span><span className="library-card-cta">Xem công thức &amp; cách nấu <ChevronRight size={16}/></span></span></button>;
+                return <button className="library-card mnnm-recipe-card" key={entry.key} onClick={() => openLibraryCandidate(group)}><span className={`library-emoji${image || item.image_url ? " has-recipe-image" : ""}`} data-emoji="🍲">{image ? <img src={image.cardImagePath ?? image.imagePath} alt={`Ảnh món ${item.name}`} loading="lazy" decoding="async" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/> : item.image_url ? <img src={item.image_url} alt={`Ảnh món ${item.name}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event) => fallbackMnnmImage(event, item)}/> : "🍲"}</span><span className="library-card-content"><span className="library-card-title">{item.name}</span><span className="library-card-meta">{meta}</span><span className="library-card-cta">Xem công thức &amp; cách nấu <ChevronRight size={16}/></span></span></button>;
               }
               const item = entry.item;
               const image = recipeImageFor(entry.key);
@@ -2207,10 +2067,9 @@ function App() {
               const status = authoredSupplement ? "Cần rà soát" : item.has_instructions ? "Chưa xác minh" : item.has_ingredients ? "Thiếu hướng dẫn" : "Thiếu dữ liệu";
               const meta = [item.ingredients ? `${item.ingredients.length} nguyên liệu` : "", status].filter(Boolean).join(" · ");
               return <button className="library-card source-recipe-card" key={entry.key} onClick={() => openLibraryCandidate(group)}><span className={`library-emoji${image ? " has-recipe-image" : ""}`} data-emoji="🍲">{image ? <img src={image.cardImagePath ?? image.imagePath} alt={aiIllustration ? `Ảnh minh họa AI cho món ${item.name}` : `Ảnh món ${item.name}`} loading="lazy" decoding="async" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/> : "🍲"}</span><span className="library-card-content"><span className="library-card-title">{item.name}</span><span className="library-card-meta">{aiIllustration ? "Ảnh AI · " : ""}{meta}</span><span className="library-card-cta">Xem chi tiết <ChevronRight size={16}/></span></span></button>;
-            })}</div> : sourceCatalogLoad === "loading" || mnnmLoad === "loading" || knorrLoad === "loading" ? <p role="status" className="source-catalog-state">Đang tải danh sách món…</p> : <div className="no-results"><span>🔎</span><h3>Không tìm thấy món phù hợp</h3><p>Thử tên món hoặc nguyên liệu khác, hoặc bỏ bớt bộ lọc.</p></div>}
+            })}</div> : mnnmLoad === "loading" || knorrLoad === "loading" ? <p role="status" className="source-catalog-state">Đang tải danh sách món…</p> : <div className="no-results"><span>🔎</span><h3>Không tìm thấy món phù hợp</h3><p>Thử tên món hoặc nguyên liệu khác, hoặc bỏ bớt bộ lọc.</p></div>}
             {libraryResults.length > libraryLimit && <button className="recommendation-load-more" onClick={() => setLibraryLimit((current) => current + 30)}>Xem thêm {Math.min(30, libraryResults.length - libraryLimit)} món</button>}
             <p className="dataset-attribution">Nguồn và tình trạng công thức có trong chi tiết món. Ảnh Copper theo <a href="https://copperapp.app/study/what-the-world-cooks.html" target="_blank" rel="noreferrer">CC BY 4.0</a>.</p>
-            {sourceCatalogLoad === "error" && <p role="alert" className="source-catalog-state">Chưa tải được thêm món Dinh dưỡng 2598. <button className="text-button" onClick={() => setSourceCatalogRetry((current) => current + 1)}>Thử tải lại</button></p>}
             {mnnmLoad === "error" && <p role="alert" className="source-catalog-state">Chưa tải được danh sách món MNMN. <button className="text-button" onClick={() => { setMnnmCatalog(null); setMnnmRetry((current) => current + 1); }}>Thử tải lại</button></p>}
             {knorrLoad === "error" && <p role="alert" className="source-catalog-state">Chưa tải được danh sách món Knorr. <button className="text-button" onClick={() => { setKnorrRecipes(null); setKnorrRetry((current) => current + 1); }}>Thử tải lại</button></p>}
           </>
@@ -2569,7 +2428,24 @@ function App() {
               </button>}
             </header>
             <div className="modal-scroll" ref={recipeDetailScrollRef}>
-              {mnnmRecipeSelection ? mnnmRecipeSelection.image_url ? <figure className="recipe-detail-image" data-emoji={modal.emoji}><img src={mnnmRecipeSelection.image_url} alt={`Ảnh món ${modal.name}`} decoding="async" onLoad={(event) => preferHigherResolutionImage(event, mnnmRecipeSelection.image_fallbacks)} onError={(event) => fallbackMnnmImage(event, mnnmRecipeSelection)}/><figcaption>Ảnh từ <a href={mnnmRecipeSelection.source_url} target="_blank" rel="noreferrer">Món Ngon Mỗi Ngày</a>.</figcaption></figure> : <div className="hero-food">{modal.emoji}</div> : modal.imageUrl ? <figure className="recipe-detail-image" data-emoji={modal.emoji}><img src={modal.imageUrl} alt={`Ảnh món ${modal.name}`} decoding="async" onLoad={(event) => preferHigherResolutionImage(event, modal.imageFallbacks)} onError={(event) => fallbackRecipeSourceImage(event, modal)}/><figcaption>Ảnh từ <a href={modal.source.url} target="_blank" rel="noreferrer">Knorr Việt Nam</a>.</figcaption></figure> : recipeImageFor(modal.id) ? (() => { const image = recipeImageFor(modal.id)!; const aiIllustration = image.imageType === "ai_illustration"; return <figure className="recipe-detail-image" data-emoji={modal.emoji}><img src={image.imagePath} alt={aiIllustration ? `Ảnh minh họa AI cho món ${modal.name}` : `Ảnh ${modal.name}`} decoding="async" onError={(event) => { event.currentTarget.hidden = true; event.currentTarget.parentElement?.classList.add("image-unavailable"); }}/><figcaption>{aiIllustration ? <><strong>Ảnh minh họa AI</strong> · Không phải ảnh thật của món. {image.notes}</> : <>Ảnh: <a href={image.sourcePageUrl} target="_blank" rel="noreferrer">{image.author} · Wikimedia Commons</a> · <a href={image.licenseUrl} target="_blank" rel="noreferrer">{image.license}</a>. Đã chỉnh kích thước, chuyển WebP{image.cardImagePath ? " và cắt cho thẻ món" : ""}. {image.fitNotes}</>}</figcaption></figure>; })() : <div className="hero-food">{modal.emoji}</div>}
+              {(() => {
+                const localImage = recipeImageFor(modal.id);
+                if (localImage) {
+                  const aiIllustration = localImage.imageType === "ai_illustration";
+                  return <figure className="recipe-detail-image" data-emoji={modal.emoji}><img src={localImage.imagePath} alt={aiIllustration ? `Ảnh minh họa AI cho món ${modal.name}` : `Ảnh ${modal.name}`} decoding="async" onError={(event) => { event.currentTarget.hidden = true; event.currentTarget.parentElement?.classList.add("image-unavailable"); }}/><figcaption>{aiIllustration ? <><strong>Ảnh minh họa AI</strong> · Không phải ảnh thật của món. {localImage.notes}</> : localImage.source === "knorr" ? <>Ảnh từ <a href={modal.source.url} target="_blank" rel="noreferrer">Knorr Việt Nam</a> (đã tối ưu WebP).</> : localImage.source === "mnnm" ? <>Ảnh từ <a href={mnnmRecipeSelection?.source_url ?? modal.source.url} target="_blank" rel="noreferrer">Món Ngon Mỗi Ngày</a> (đã tối ưu WebP).</> : <>Ảnh: <a href={localImage.sourcePageUrl} target="_blank" rel="noreferrer">{localImage.author} · Wikimedia Commons</a> · <a href={localImage.licenseUrl} target="_blank" rel="noreferrer">{localImage.license}</a>. {localImage.fitNotes}</>}</figcaption></figure>;
+                }
+                if (mnnmRecipeSelection?.image_url) {
+                  return <figure className="recipe-detail-image" data-emoji={modal.emoji}><img src={mnnmRecipeSelection.image_url} alt={`Ảnh món ${modal.name}`} decoding="async" referrerPolicy="no-referrer" onError={(event) => fallbackMnnmImage(event, mnnmRecipeSelection)}/><figcaption>Ảnh từ <a href={mnnmRecipeSelection.source_url} target="_blank" rel="noreferrer">Món Ngon Mỗi Ngày</a>.</figcaption></figure>;
+                }
+                if (modal.imageUrl) {
+                  return <figure className="recipe-detail-image" data-emoji={modal.emoji}><img src={modal.imageUrl} alt={`Ảnh món ${modal.name}`} decoding="async" referrerPolicy="no-referrer" onError={(event) => fallbackRecipeSourceImage(event, modal)}/><figcaption>Ảnh từ <a href={modal.source.url} target="_blank" rel="noreferrer">Knorr Việt Nam</a>.</figcaption></figure>;
+                }
+                if (flexibleRecipeImageFor(modal)) {
+                  const image = flexibleRecipeImageFor(modal)!;
+                  return <figure className="recipe-detail-image flexible-detail-image" data-emoji={modal.emoji}><img src={image.imagePath} alt={`Ảnh minh họa nhóm món cho gợi ý ${modal.name}`} decoding="async" onError={(event) => { event.currentTarget.hidden = true; event.currentTarget.parentElement?.classList.add("image-unavailable"); }}/><figcaption><strong>Ảnh minh họa nhóm món</strong> · Nguyên liệu trong hình có thể khác món tự phối.</figcaption></figure>;
+                }
+                return <div className="hero-food">{modal.emoji}</div>;
+              })()}
               <div className="confidence">
                 {mnnmRecipeSelection
                   ? "Món Ngon Mỗi Ngày · nội dung nguồn, chưa rà soát thủ công"
@@ -2610,21 +2486,21 @@ function App() {
                 </span>
               </div>
               {sourceCatalogDetail && <section className="source-recipe-details">
-                {sourceRecipeLoad === "loading" && <p role="status">Đang tải nguyên liệu và hướng dẫn từ dữ liệu đã thu thập…</p>}
-                {sourceRecipeLoad === "error" && <div role="alert"><b>Không tải được chi tiết món.</b><button className="text-button" onClick={() => openSourceCatalogItem(sourceCatalogDetail)}>Thử tải lại</button></div>}
+                {sourceRecipeLoad() === "loading" && <p role="status">Đang tải nguyên liệu và hướng dẫn từ dữ liệu đã thu thập…</p>}
+                {sourceRecipeLoad() === "error" && <div role="alert"><b>Không tải được chi tiết món.</b><button className="text-button" onClick={() => openSourceCatalogItem(sourceCatalogDetail)}>Thử tải lại</button></div>}
                 {sourceCatalogDetail.quality_status === "unmatched" && <div className="source-unmatched-warning" role="alert"><b>Nguồn chưa xác nhận.</b> Bản ghi catalog chưa ghép chắc chắn với trang chi tiết tương ứng; không coi URL gợi ý dưới đây là xác nhận nội dung.</div>}
                 {sourceRecipeDetail?.instruction_authorship === "independently_authored" && <div className="source-unmatched-warning" role="status"><b>Hướng dẫn biên soạn độc lập · cần rà soát.</b> Chưa thử nghiệm thực tế; có thể xem nguồn tham khảo về cách nấu phổ biến tại <a href={sourceRecipeDetail.instruction_reference_url} target="_blank" rel="noreferrer">{sourceRecipeDetail.instruction_reference_title}</a>. Hướng dẫn được viết lại theo nguyên liệu của bản ghi đang mở.</div>}
                 {!!sourceCatalogDetail.serving_options?.length && <div className="source-serving-picker"><label htmlFor="source-serving-option">Khẩu phần / kích thước</label><select id="source-serving-option" value={selectedServingSourceId || sourceRecipeDetail?.id || sourceCatalogDetail.serving_options[0].sourceRecipeId} onChange={(event) => selectSourceServingOption(sourceCatalogDetail, event.target.value)}>{sourceCatalogDetail.serving_options.map((option) => <option key={option.sourceRecipeId} value={option.sourceRecipeId}>{option.label}{option.ageGroups.length && !option.ageScopeIncomplete ? ` · ${option.ageGroups.join(", ")}` : ""}</option>)}</select><small>Nguyên liệu và hướng dẫn được đọc theo đúng bản ghi nguồn đã chọn.</small></div>}
-                {sourceRecipeLoad === "idle" && sourceCatalogDetail.serving_options?.some((option) => option.sourceRecipeConflict) && <p className="source-unmatched-warning" role="status">Có bản ghi cùng khẩu phần nhưng khác nội dung nguyên liệu hoặc hướng dẫn; hệ thống giữ từng lựa chọn nguồn riêng.</p>}
+                {sourceRecipeLoad() === "idle" && sourceCatalogDetail.serving_options?.some((option) => option.sourceRecipeConflict) && <p className="source-unmatched-warning" role="status">Có bản ghi cùng khẩu phần nhưng khác nội dung nguyên liệu hoặc hướng dẫn; hệ thống giữ từng lựa chọn nguồn riêng.</p>}
                 {sourceCatalogDetail.ingredient_list_conflict && <p className="source-unmatched-warning" role="status">Danh sách nguyên liệu khác nhau giữa các biến thể nguồn. Tủ lạnh chỉ đối chiếu danh sách của biến thể canonical đang hiển thị.</p>}
                 <p><b>Trạng thái dữ liệu:</b> {sourceCatalogDetail.quality_status === "complete" ? "Đầy đủ theo kiểm tra tự động, chưa xác minh thủ công" : sourceCatalogDetail.quality_status === "needs_review" ? "Có dữ liệu nhưng cần rà soát" : sourceCatalogDetail.quality_status === "unmatched" ? "Chưa ghép chắc chắn với món nguồn" : "Nguồn thiếu trường dữ liệu"}<br/><b>Nhóm món:</b> {sourceRecipeDetail?.category ?? sourceCatalogDetail.category ?? "Không có dữ liệu"}<br/><b>Nhóm tuổi:</b> {sourceRecipeDetail?.age_group ?? sourceCatalogDetail.age_group ?? "Không ghi nhóm tuổi"}<br/><b>Khẩu phần nguồn:</b> {sourceRecipeDetail?.serving?.raw ?? "Không có dữ liệu"}</p>
                 {sourceRecipeDetail && sourceRecipeWarnings(sourceRecipeDetail).length > 0 && <div className="source-unmatched-warning" role="alert"><b>Cảnh báo dữ liệu nguồn</b><ul>{sourceRecipeWarnings(sourceRecipeDetail).map((warning) => <li key={warning}>{warning.replace(/_/g, " ")}</li>)}</ul>{sourceRecipeDetail.integrity_findings.length > 0 && <p>Kiểm tra tự động phát hiện khả năng tên nguyên liệu và hướng dẫn không khớp. Đây là cảnh báo cần rà soát, không phải kết luận chắc chắn sai.</p>}</div>}
                 {sourceRecipeDetail?.ingredients?.length && stock.length > 0 && <div><b>Đối chiếu tủ lạnh · {sourceRecipeMissingIngredients({ ...sourceCatalogDetail, ingredients: sourceRecipeDetail.ingredients.map((entry) => entry.name) }, stock.map((item) => item.name ?? nameFor(item.id)))?.length ?? 0} nguyên liệu cần thêm hoặc chưa nhận diện</b><p>{sourceRecipeMissingIngredients({ ...sourceCatalogDetail, ingredients: sourceRecipeDetail.ingredients.map((entry) => entry.name) }, stock.map((item) => item.name ?? nameFor(item.id)))?.join(" · ") || "Tên nguyên liệu trong danh sách đang có đã khớp"}</p></div>}
                 {sourceRecipeDetail?.ingredients?.length && !sourceRecipeEligibleForFridge(sourceRecipeDetail) && <p role="note">Món này chưa được tính là gợi ý nấu từ tủ lạnh: danh sách/hướng dẫn thiếu hoặc dữ liệu đang cần rà soát.</p>}
-                {sourceRecipeLoad === "idle" && sourceRecipeDetail && sourceRecipeCompleteness(sourceRecipeDetail) === "recipe_with_warnings" && <b>Có hướng dẫn nguồn nhưng cần rà soát; không tính là món sẵn sàng nấu từ tủ lạnh.</b>}
-                {sourceRecipeLoad === "idle" && sourceRecipeDetail && sourceRecipeCompleteness(sourceRecipeDetail) === "method_only" && <b>Có hướng dẫn nhưng thiếu danh sách nguyên liệu; không thể đối chiếu để gợi ý nấu.</b>}
-                {sourceRecipeLoad === "idle" && sourceRecipeDetail && sourceRecipeCompleteness(sourceRecipeDetail) === "ingredients_only" && <b>Chưa có hướng dẫn chế biến trong dữ liệu nguồn.</b>}
-                {sourceRecipeLoad === "idle" && sourceRecipeDetail && sourceRecipeCompleteness(sourceRecipeDetail) === "no_recipe_content" && <b>Chưa có hướng dẫn hoặc danh sách nguyên liệu trong dữ liệu nguồn.</b>}
+                {sourceRecipeLoad() === "idle" && sourceRecipeDetail && sourceRecipeCompleteness(sourceRecipeDetail) === "recipe_with_warnings" && <b>Có hướng dẫn nguồn nhưng cần rà soát; không tính là món sẵn sàng nấu từ tủ lạnh.</b>}
+                {sourceRecipeLoad() === "idle" && sourceRecipeDetail && sourceRecipeCompleteness(sourceRecipeDetail) === "method_only" && <b>Có hướng dẫn nhưng thiếu danh sách nguyên liệu; không thể đối chiếu để gợi ý nấu.</b>}
+                {sourceRecipeLoad() === "idle" && sourceRecipeDetail && sourceRecipeCompleteness(sourceRecipeDetail) === "ingredients_only" && <b>Chưa có hướng dẫn chế biến trong dữ liệu nguồn.</b>}
+                {sourceRecipeLoad() === "idle" && sourceRecipeDetail && sourceRecipeCompleteness(sourceRecipeDetail) === "no_recipe_content" && <b>Chưa có hướng dẫn hoặc danh sách nguyên liệu trong dữ liệu nguồn.</b>}
                 {(sourceRecipeDetail?.source_url ?? sourceCatalogDetail.source_url) && <a href={sourceRecipeDetail?.source_url ?? sourceCatalogDetail.source_url!} target="_blank" rel="noreferrer">Mở trang tham khảo nguồn <ExternalLink size={14}/></a>}
               </section>}
               {mnnmRecipeSelection ? <div className="honesty-note">Nguyên liệu, hướng dẫn và ảnh được lấy từ Món Ngon Mỗi Ngày; dữ liệu chưa được rà soát thủ công. Mở liên kết nguồn để đối chiếu nội dung gốc.</div> : sourceCatalogDetail ? <div className="honesty-note">{sourceRecipeDetail?.instruction_authorship === "independently_authored" ? "Hướng dẫn được biên soạn lại, có đối chiếu nguồn tham khảo và chưa được thử nghiệm độc lập. Nguyên liệu bổ sung riêng cho cách nấu được đánh dấu bên dưới; dữ liệu nguồn gốc vẫn được giữ nguyên." : "Nội dung công thức được giữ nguyên từ nguồn và chưa được xác minh thủ công."}</div> : modal.source.title === "Knorr Việt Nam" ? <div className="honesty-note">Nguyên liệu, hướng dẫn và ảnh được lấy từ Knorr Việt Nam; dữ liệu chưa được rà soát thủ công. Mở liên kết nguồn để đối chiếu với trang gốc.</div> : modal.source.title.startsWith("Gợi ý linh hoạt") ? <div className="honesty-note">Đây là cách phối món được tạo từ nguyên liệu bạn đang có, không phải công thức lấy từ website. Hướng dẫn chưa được thử nghiệm; hãy nấu chín kỹ nguyên liệu sống và nêm từng ít một.</div> : modal.dataStatus === "ingredients_only" ? <div className="honesty-note">Nguồn chỉ cung cấp danh sách nguyên liệu và thông tin tổng quan, chưa có định lượng hoặc hướng dẫn nấu. Không coi đây là công thức hoàn chỉnh.</div> : modal.verificationStatus !== "verified" && <div className="honesty-note">Công thức nội bộ, chưa được xác minh độc lập. Hãy đảm bảo nguyên liệu chín kỹ và phù hợp với bạn.</div>}
@@ -2769,13 +2645,16 @@ function FlexibleSuggestionPanel({ recipes, onOpen, compact = false }: { recipes
       <div><h2 id={compact ? "home-flexible-title" : "flexible-title"}>Nấu linh hoạt từ tủ lạnh</h2>
         <p>Tự phối từ đồ bạn có, không cần khớp trọn một công thức có sẵn. Các gợi ý này chưa được thử nghiệm.</p></div>
     </div>
-    <div className="flexible-suggestion-list">{recipes.map((recipe) => <button className="flexible-suggestion-card" key={recipe.id} onClick={() => onOpen(recipe)}>
-      <span className="flexible-card-icon" aria-hidden="true">{recipe.emoji}</span>
+    <div className="flexible-suggestion-list">{recipes.map((recipe) => {
+      const image = flexibleRecipeImageFor(recipe);
+      return <button className="flexible-suggestion-card" key={recipe.id} onClick={() => onOpen(recipe)}>
+      <span className="flexible-card-image" aria-label="Ảnh minh họa nhóm món">{image ? <img src={image.cardImagePath ?? image.imagePath} alt="" loading="lazy" decoding="async"/> : recipe.emoji}<small>Minh họa</small></span>
       <span className="flexible-card-content"><span className="flexible-card-label">GỢI Ý TỰ PHỐI · {recipe.category}</span><b>{recipe.name}</b>
         <span className="flexible-card-ingredients">{recipe.ingredients.map((item) => item.sourceName ?? nameFor(item.ingredientId)).join(" · ")}</span>
         <small>{recipe.totalTime ?? "~15"} phút · {recipe.steps.length} bước · xem cách làm <ChevronRight size={14}/></small>
       </span>
-    </button>)}</div>
+    </button>;
+    })}</div>
   </section>;
 }
 
@@ -2807,12 +2686,32 @@ function RecipeCard({
   compact?: boolean;
 }) {
   const extraReasons = [...new Set((reasons ?? []).filter((reason) => !/công thức nội bộ|đủ loại nguyên liệu|còn thiếu|thiếu định lượng|chưa thể xác nhận đủ số lượng/i.test(reason)))].slice(0, 1);
-  const sourceImage = recipe.imageUrl;
   const image = recipeImageFor(recipe.id);
+  const displayImage = image?.cardImagePath ?? image?.imagePath ?? recipe.imageUrl;
   return (
     <button className={`recipe-card${compact ? " compact" : ""}`} onClick={onClick}>
-      <div className={`food-thumb${image || sourceImage ? " has-recipe-image" : ""}`} data-emoji={recipe.emoji}>
-        {sourceImage ? <><img src={sourceImage} alt={`Ảnh món ${recipe.name}`} loading="lazy" decoding="async" onLoad={(event) => preferHigherResolutionImage(event, recipe.imageFallbacks)} onError={(event) => fallbackRecipeSourceImage(event, recipe)}/><span className="recipe-card-credit">Ảnh: {recipe.source.title}</span></> : image ? <><img src={image.cardImagePath ?? image.imagePath} alt={image.imageType === "ai_illustration" ? `Ảnh minh họa AI cho món ${recipe.name}` : `Ảnh ${recipe.name}`} loading="lazy" decoding="async" onError={(event) => event.currentTarget.parentElement?.classList.add("image-unavailable")}/><span className={`recipe-card-credit${image.imageType === "ai_illustration" ? " ai-image-credit" : ""}`}>{image.imageType === "ai_illustration" ? "Ảnh minh họa AI" : `Ảnh: ${image.author} · ${image.license}`}</span></> : recipe.emoji}
+      <div className={`food-thumb${image || displayImage ? " has-recipe-image" : ""}`} data-emoji={recipe.emoji}>
+        {displayImage ? (
+          <>
+            <img
+              src={displayImage}
+              alt={`Ảnh món ${recipe.name}`}
+              loading="lazy"
+              decoding="async"
+              referrerPolicy="no-referrer"
+              onError={(event) => {
+                if (recipe.imageUrl && displayImage === recipe.imageUrl) {
+                  fallbackRecipeSourceImage(event, recipe);
+                } else {
+                  event.currentTarget.parentElement?.classList.add("image-unavailable");
+                }
+              }}
+            />
+            <span className={`recipe-card-credit${image?.imageType === "ai_illustration" ? " ai-image-credit" : ""}`}>
+              {image ? (image.imageType === "ai_illustration" ? "Ảnh minh họa AI" : `Ảnh: ${image.author || recipe.source.title}`) : `Ảnh: ${recipe.source.title}`}
+            </span>
+          </>
+        ) : recipe.emoji}
         {urgent && <span className="urgent-dot">Cần dùng</span>}
       </div>
       <div className="card-content">

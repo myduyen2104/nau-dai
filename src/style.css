@@ -1450,6 +1450,15 @@ h1, h2, h3 { color: #1a1c18; }
 .flexible-suggestion-card { min-height: 82px; padding: 11px 0; }
 .flexible-card-icon { border-radius: 12px; }
 .flexible-card-content > b { font-size: 15px; }
+.flexible-card-image { position: relative; width: 88px; height: 76px; flex: 0 0 88px; display: grid; place-items: center; overflow: hidden; border-radius: 12px; background: #eee8dc; color: #006738; font-size: 25px; }
+.flexible-card-image img { width: 100%; height: 100%; object-fit: cover; }
+.flexible-card-image small { position: absolute; right: 4px; bottom: 4px; padding: 2px 5px; border-radius: 999px; background: rgba(24,35,28,.78); color: #fff; font-size: 8px; line-height: 1.2; }
+.flexible-detail-image img { object-fit: cover; }
+.flexible-detail-image figcaption { color: #59675d; }
+.flexible-detail-image figcaption strong { color: #006738; }
+@media (max-width: 699px) {
+  .flexible-card-image { width: 72px; height: 68px; flex-basis: 72px; border-radius: 10px; }
+}
 .suggestion-preview { margin: 24px 0; }
 .preview-scroll { gap: 12px; }
 .recipe-list, .library-list { gap: 14px; }

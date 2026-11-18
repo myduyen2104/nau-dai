@@ -4,7 +4,7 @@ import { resolve, relative, sep } from "node:path";
 const root = process.cwd();
 const dist = resolve(root, "dist");
 const manifestPath = resolve(dist, "data/recipe-image-manifest.json");
-const runtimeOnlyData = ["data/dinhduong2598-canonical-recipes.json"];
+const runtimeOnlyData = [];
 
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 if (!Array.isArray(manifest.records)) throw new Error("Production image manifest has no records array");

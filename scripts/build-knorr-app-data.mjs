@@ -36,7 +36,7 @@ function servingCount(value) {
 function highResolutionKnorrImage(row) {
   const id = String(row.id).split(":").at(-1);
   const extension = String(row.image_url ?? "").match(/\.([a-z\d]+)(?:\?.*)?$/i)?.[1] ?? "jpg";
-  return `https://assets.unileversolutions.com/recipes-v3/${id}-default.${extension}?im=Resize=(1200,1200)`;
+  return `https://assets.unileversolutions.com/recipes-v3/${id}-default.${extension}?im=Resize=(400,400)`;
 }
 function sourceTips(row) {
   const cue = /\b(?:mẹo(?: nhỏ| hay)?|mách bạn|bí quyết|lưu ý)\b/iu;

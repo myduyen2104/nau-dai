@@ -1,5 +1,21 @@
-const CACHE = "fresh-shell-v12";
-const SHELL = ["/", "/manifest.webmanifest", "/favicon.svg", "/icon.svg", "/favicon.ico", "/favicon-32x32.png", "/apple-touch-icon.png", "/pwa-192x192.png", "/pwa-512x512.png", "/pwa-maskable-512x512.png", "/data/recipe-image-manifest.json", "/data/canonical-recipe-id-aliases.json"];
+const CACHE = "fresh-shell-v13";
+const SHELL = [
+  "/",
+  "/manifest.webmanifest",
+  "/favicon.svg",
+  "/icon.svg",
+  "/favicon.ico",
+  "/favicon-32x32.png",
+  "/apple-touch-icon.png",
+  "/pwa-192x192.png",
+  "/pwa-512x512.png",
+  "/pwa-maskable-512x512.png",
+  "/data/recipe-image-manifest.json",
+  "/data/source-recipe-image-manifest.json",
+  "/data/cooking-tips.json",
+  "/data/knorr/home-recommendations.json",
+  "/data/mnnm/recent.json"
+];
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
   self.skipWaiting();
@@ -16,12 +32,43 @@ self.addEventListener("notificationclick", (event) => {
   }));
 });
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET" || new URL(event.request.url).origin !== self.location.origin) return;
-  if (new URL(event.request.url).pathname === "/data/youtube/catalog.json") {
+  if (event.request.method !== "GET") return;
+
+  const requestUrl = new URL(event.request.url);
+
+  // External images caching (Cache-First with network fallback, never caching error responses)
+  if (requestUrl.origin !== self.location.origin) {
+    if (
+      requestUrl.hostname.includes("monngonmoingay.com") ||
+      requestUrl.hostname.includes("unileversolutions.com")
+    ) {
+      event.respondWith(
+        caches.open("external-recipe-images-v1").then(async (cache) => {
+          const cached = await cache.match(event.request);
+          if (cached) return cached;
+          try {
+            const response = await fetch(event.request);
+            if (response.ok && response.status === 200) {
+              await cache.put(event.request, response.clone());
+            }
+            return response;
+          } catch {
+            return Response.error();
+          }
+        })
+      );
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/data/youtube/catalog.json") {
     event.respondWith(fetch(event.request, { cache: "no-store" }).catch(() => Response.error()));
     return;
   }
-  if (new URL(event.request.url).pathname === "/data/recipe-image-manifest.json") {
+  if (
+    requestUrl.pathname === "/data/recipe-image-manifest.json" ||
+    requestUrl.pathname === "/data/source-recipe-image-manifest.json"
+  ) {
     event.respondWith(caches.open(CACHE).then(async (cache) => {
       try {
         const response = await fetch(event.request);
