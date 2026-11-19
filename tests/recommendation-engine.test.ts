@@ -30,6 +30,16 @@ const input = (recipes: EngineRecipe[], stock: RecommendationInput["stock"] = []
   recipes, stock, ingredients: catalog, preferences: { ...defaultRecommendationPreferences }, now: new Date("2026-11-04T12:00:00Z"), ...overrides,
 });
 const resultFor = (data: RecommendationInput, id: string) => recommendRecipes(data).find((item) => item.recipeId === id)!;
+// The four simple boiled-dish recipes were deliberately removed from src/data.ts in the catalog cleanup.
+const currentInternalRecipeIds = [
+  "beef-tomato", "bread-egg", "cabbage-egg", "cabbage-soup", "carrot-egg", "carrot-salad", "chicken-carrot",
+  "chicken-soup", "coconut-pumpkin", "corn-egg", "cucumber-salad", "egg-steam", "fish-boil", "fried-rice",
+  "garlic-greens", "garlic-noodle", "glass-noodle-soup", "glass-noodle-stir", "mushroom-egg", "noodle-egg",
+  "oatmeal-banana", "pasta-tomato", "peanut-noodle", "pork-cabbage", "potato-egg", "potato-mash", "potato-soup",
+  "pumpkin-soup", "shrimp-greens", "shrimp-noodle", "shrimp-tomato", "tofu-boil", "tofu-greens", "tofu-tomato",
+  "tomato-egg", "tomato-soup", "yogurt-banana",
+];
+const deliberatelyRemovedRecipeIds = ["egg-boil", "boiled-corn", "sweet-potato", "carrot-boil"];
 
 test("tủ lạnh trống không tạo gợi ý nấu ngay", () => {
   const result = resultFor(input([recipe("eggs", ["egg"])]), "eggs");
@@ -259,15 +269,17 @@ test("xử lý 1.000 công thức và vẫn xếp hạng ổn định", () => {
   assert.equal(results[0].recipeId, "recipe-0000");
 });
 
-test("engine nhận toàn bộ 41 công thức hiện có và 3 mục Copper, vẫn để Copper ở Khám phá", async () => {
+test("engine nhận baseline 37 món nội bộ hiện tại và 3 mục Copper, vẫn để Copper ở Khám phá", async () => {
   const copper = JSON.parse(await readFile(new URL("../src/data/recipes/copper-vietnam.json", import.meta.url), "utf8"));
   const external: EngineRecipe[] = copper.recipes.map((item: { id: string; name: string; totalTimeMinutes: number | null; ingredients: { sourceName: string; ingredientId: string | null }[] }) => ({
     id: item.id, name: item.name, method: "", minutes: item.totalTimeMinutes, dataStatus: "ingredients_only", steps: [],
     ingredients: item.ingredients.map((ingredient) => ({ ingredientId: ingredient.ingredientId ?? ingredient.sourceName, sourceName: ingredient.sourceName, quantity: null, unit: "", optional: false })),
   }));
   const results = recommendRecipes({ recipes: [...recipes, ...external], stock: [{ id: "egg" }], ingredients, preferences: { ...defaultRecommendationPreferences }, now: new Date("2026-11-04T12:00:00Z") });
-  assert.equal(recipes.length, 41);
+  assert.deepEqual(recipes.map((item) => item.id).sort(), currentInternalRecipeIds);
+  assert.ok(deliberatelyRemovedRecipeIds.every((id) => !recipes.some((item) => item.id === id)));
+  assert.ok(recipes.every((item) => item.source.title === "Công thức nội bộ — chưa xác minh độc lập"));
   assert.equal(external.length, 3);
-  assert.equal(results.length, 44);
+  assert.equal(results.length, 40);
   assert.ok(results.filter((result) => result.recipeId.startsWith("copper:")).every((result) => result.category === "discover" && !result.hasFullInstructions));
 });

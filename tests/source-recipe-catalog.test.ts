@@ -1,18 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import { filterSourceRecipeCatalog, sourceRecipeEligibleForFridge, sourceRecipeMissingIngredients, type SourceRecipeCatalogItem } from "../src/services/sourceRecipeCatalog.ts";
-
-const catalog = JSON.parse(await readFile(new URL("../public/data/dinhduong2598-recipe-catalog.json", import.meta.url), "utf8")) as SourceRecipeCatalogItem[];
-
-test("catalog exposes unique canonical dishes without obvious non-recipe records", () => {
-  assert.equal(catalog.length, 1995);
-  assert.ok(catalog.every((item) => !/^(?:acb|hương test 25032024|test 14032024|x)$/i.test(item.name.trim())));
-  assert.equal(new Set(catalog.map((item) => item.canonical_recipe_id)).size, catalog.length);
-  assert.equal(catalog.filter((item) => item.has_instructions).length, 1191);
-  assert.equal(catalog.filter((item) => !item.has_instructions).length, 804);
-  assert.equal(catalog.filter((item) => item.quality_status === "complete" && item.has_instructions && item.has_ingredients).length, 194);
-});
 
 test("pantry matching supports curated Vietnamese source aliases", () => {
   const fixture: SourceRecipeCatalogItem[] = [{ id: "alias", name: "Ngao xào", source_url: null, category: null, age_group: null, ingredients: ["Ngao biển trắng (thịt ngao)", "Hành lá (hành hoa)"], quality_status: "complete", has_instructions: true, has_ingredients: true, detail_shard: "aa" }];

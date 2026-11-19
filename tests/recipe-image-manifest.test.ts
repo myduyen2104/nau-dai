@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
+import { recipes } from "../src/data.ts";
 
 const root = process.cwd();
 const manifest = JSON.parse(await readFile(resolve(root, "src/data/recipe-image-manifest.json"), "utf8"));
@@ -12,7 +13,12 @@ test("recipe image manifest keys are unique and every image points to an optimiz
   const licensed = manifest.records.filter((record) => record.imageType !== "ai_illustration");
   const ai = manifest.records.filter((record) => record.imageType === "ai_illustration");
   assert.equal(licensed.length, 3, "existing licensed photos must remain intact");
-  assert.equal(ai.filter((record) => record.source === "internal").length, 41, "phase one should include the internal recipe set");
+  const internalAi = ai.filter((record) => record.source === "internal");
+  const internalRecipeImages = internalAi.filter((record) => recipes.some((recipe) => recipe.id === record.recipeId));
+  const flexibleTemplateImages = internalAi.filter((record) => record.recipeId.startsWith("flexible-template:"));
+  assert.deepEqual(internalRecipeImages.map((record) => record.recipeId).sort(), recipes.map((recipe) => recipe.id).sort());
+  assert.equal(flexibleTemplateImages.length, 10, "flexible suggestion templates keep their separate illustrations");
+  assert.equal(internalAi.length, recipes.length + flexibleTemplateImages.length);
   assert.equal(ai.filter((record) => record.source === "copper").length, 3, "the active Copper illustrations must remain separate from their licensed archival originals");
 
   for (const record of manifest.records) {

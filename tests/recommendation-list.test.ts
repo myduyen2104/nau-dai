@@ -8,7 +8,7 @@ const recipe = (id: string, name: string, category: string, sourceTitle: string)
   id, slug: id, name, emoji: "🍲", description: "", category, cuisine: "vietnamese", method: "", minutes: null,
   preparationTime: null, cookingTime: null, totalTime: null, difficulty: "Chưa đánh giá", servings: null,
   required: [], optional: [], ingredients: [], steps: [], equipment: [], tips: [], tags: [],
-  source: { type: id.startsWith("dinhduong2598:") || id.startsWith("copper:") ? "website" : "internal", title: sourceTitle },
+  source: { type: id.startsWith("knorr:") || id.startsWith("copper:") ? "website" : "internal", title: sourceTitle },
   verificationStatus: "unverified", dataStatus: "full_recipe",
 });
 const recommendation = (recipeId: string, matchPercentage: number, matchedIngredients: string[]): RecipeRecommendation => ({
@@ -19,7 +19,7 @@ const recommendation = (recipeId: string, matchPercentage: number, matchedIngred
 const fixtures = [
   { ...recipe("internal-1", "Bún riêu cua", "Món nước", "Công thức nội bộ"), ingredients: [{ ingredientId: "beef", sourceName: "Thịt bò", quantity: null, unit: "", optional: false }] },
   recipe("copper:vn-bun-cha", "Bún chả", "Món chính", "Copper — traditional dishes"),
-  recipe("dinhduong2598:source-1", "Bún cá", "Món nước", "Dinh dưỡng 2598"),
+  recipe("knorr:source-1", "Bún cá", "Món nước", "Knorr Việt Nam"),
   recipe("internal-2", "Cà tím nướng", "Món nướng", "Công thức nội bộ"),
 ];
 const byId = new Map(fixtures.map((item) => [item.id, item]));
@@ -32,14 +32,14 @@ test("recommendation search handles Vietnamese accents and leaves engine order i
   assert.deepEqual(filterRecommendationList(rows, byId, { query: "thit bo" }).map((item) => item.recipeId), [fixtures[0].id]);
 });
 
-test("source, category, match level and fridge-match filters combine", () => {
-  const result = filterRecommendationList(rows, byId, { source: "dinhduong2598", category: "Món nước", match: "low", matchedOnly: false });
+test("Knorr source, category, match level and fridge-match filters combine", () => {
+  const result = filterRecommendationList(rows, byId, { source: "knorr", category: "Món nước", match: "low", matchedOnly: false });
   assert.deepEqual(result.map((item) => item.recipeId), [fixtures[2].id]);
   assert.deepEqual(filterRecommendationList(rows, byId, { matchedOnly: true }).map((item) => item.recipeId), [fixtures[0].id, fixtures[1].id, fixtures[3].id]);
   assert.deepEqual(filterRecommendationList(rows, byId, { source: "copper", match: "medium" }).map((item) => item.recipeId), [fixtures[1].id]);
   assert.equal(recommendationSource(fixtures[0]), "internal");
   assert.equal(recommendationSource(fixtures[1]), "copper");
-  assert.equal(recommendationSource(fixtures[2]), "dinhduong2598");
+  assert.equal(recommendationSource(fixtures[2]), "knorr");
 });
 
 test("no-match returns an empty list; pagination starts at a bounded batch", () => {

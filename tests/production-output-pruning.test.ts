@@ -18,7 +18,7 @@ test("production pruning keeps manifest assets and removes only unreferenced ima
     await writeFile(resolve(root, "dist/images/recipes/active.webp"), "active");
     await writeFile(resolve(root, "dist/images/recipes/runtime.webp"), "runtime-referenced");
     await writeFile(resolve(root, "dist/images/recipes/orphan.webp"), "orphan");
-    await writeFile(resolve(root, "dist/data/dinhduong2598-canonical-recipes.json"), "build-only");
+    await writeFile(resolve(root, "dist/data/app-settings.json"), "runtime-data");
     await writeFile(resolve(root, "dist/assets/app.js"), 'const path = "/images/recipes/runtime.webp";');
 
     process.chdir(root);
@@ -26,25 +26,25 @@ test("production pruning keeps manifest assets and removes only unreferenced ima
     assert.equal(await readFile(resolve(root, "dist/images/recipes/active.webp"), "utf8"), "active");
     assert.equal(await readFile(resolve(root, "dist/images/recipes/runtime.webp"), "utf8"), "runtime-referenced");
     await assert.rejects(readFile(resolve(root, "dist/images/recipes/orphan.webp")));
-    await assert.rejects(readFile(resolve(root, "dist/data/dinhduong2598-canonical-recipes.json")));
+    assert.equal(await readFile(resolve(root, "dist/data/app-settings.json"), "utf8"), "runtime-data");
   } finally {
     process.chdir(originalCwd);
     await rm(root, { recursive: true, force: true });
   }
 });
 
-test("production pruning refuses to remove canonical data referenced by built runtime assets", async () => {
+test("production pruning leaves runtime data files untouched", async () => {
   const root = await mkdtemp(resolve(tmpdir(), "nau-dai-prune-referenced-data-"));
   const originalCwd = process.cwd();
   try {
     await mkdir(resolve(root, "dist/data"), { recursive: true });
     await mkdir(resolve(root, "dist/assets"), { recursive: true });
     await writeFile(resolve(root, "dist/data/recipe-image-manifest.json"), JSON.stringify({ records: [] }));
-    await writeFile(resolve(root, "dist/data/dinhduong2598-canonical-recipes.json"), "required");
-    await writeFile(resolve(root, "dist/assets/app.js"), 'fetch("/data/dinhduong2598-canonical-recipes.json");');
+    await writeFile(resolve(root, "dist/data/app-settings.json"), "runtime-data");
+    await writeFile(resolve(root, "dist/assets/app.js"), 'fetch("/data/app-settings.json");');
     process.chdir(root);
-    await assert.rejects(import(`${new URL(script, "file://").href}?fixture=referenced-data-${Date.now()}`), /Refusing to prune runtime data/);
-    assert.equal(await readFile(resolve(root, "dist/data/dinhduong2598-canonical-recipes.json"), "utf8"), "required");
+    await import(`${new URL(script, "file://").href}?fixture=runtime-data-${Date.now()}`);
+    assert.equal(await readFile(resolve(root, "dist/data/app-settings.json"), "utf8"), "runtime-data");
   } finally {
     process.chdir(originalCwd);
     await rm(root, { recursive: true, force: true });
