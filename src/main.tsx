@@ -227,8 +227,10 @@ function loadSourceIngredientCatalog(): Promise<void> {
   if (!sourceIngredientCatalogLoad) {
     sourceIngredientCatalogLoad = import("./data/source-ingredients.json").then(({ default: data }) => {
       const source = data as { coreIngredients: Ingredient[]; supplementalIngredients: Ingredient[] };
-      ingredients = [...source.coreIngredients, ...source.supplementalIngredients]
-        .map((ingredient) => ({ ...ingredient, defaultUnit: ingredient.defaultUnit ?? coreIngredientDefaults.get(ingredient.id) }));
+      const core = source.coreIngredients.map((ingredient) => ingredient.defaultUnit
+        ? ingredient
+        : { ...ingredient, defaultUnit: coreIngredientDefaults.get(ingredient.id) });
+      ingredients = core.concat(source.supplementalIngredients);
     });
   }
   return sourceIngredientCatalogLoad;
@@ -759,7 +761,9 @@ function App() {
   const [recommendationLimit, setRecommendationLimit] = useState(RECOMMENDATION_PAGE_SIZE);
   useEffect(() => {
     const savedNeedsMnnm = page === "favorites" && favorites.some((id) => id.startsWith("monngonmoingay:"));
-    if ((page !== "explore" && page !== "fridge" && !(page === "home" && homeFeatureShufflePending) && !savedNeedsMnnm) || mnnmCatalog) return;
+    if ((page !== "explore" && page !== "fridge" && !(page === "home" && homeFeatureShufflePending) && !savedNeedsMnnm)
+      || (page === "fridge" && stock.length === 0 && !homeFeatureShufflePending && !savedNeedsMnnm)
+      || mnnmCatalog) return;
     let cancelled = false;
     const controller = new AbortController();
     setMnnmLoad("loading");
@@ -797,7 +801,9 @@ function App() {
   }, [page, knorrHomeRecipes]);
   useEffect(() => {
     const savedNeedsKnorr = page === "favorites" && favorites.some((id) => id.startsWith("knorr:"));
-    if ((page !== "explore" && page !== "fridge" && !(page === "home" && homeFeatureShufflePending) && !savedNeedsKnorr) || knorrRecipes) return;
+    if ((page !== "explore" && page !== "fridge" && !(page === "home" && homeFeatureShufflePending) && !savedNeedsKnorr)
+      || (page === "fridge" && stock.length === 0 && !homeFeatureShufflePending && !savedNeedsKnorr)
+      || knorrRecipes) return;
     let cancelled = false;
     const controller = new AbortController();
     setKnorrLoad("loading");
@@ -983,13 +989,14 @@ function App() {
   )).sort((a, b) => (a.expiresAt ?? "9999-12-31").localeCompare(b.expiresAt ?? "9999-12-31")).slice(0, 4), [stock]);
   const ingredientIndex = useMemo(() => buildIngredientIndex(ingredients), [ingredientCatalogVersion]);
   const sourceEngineRecipes = useMemo(() => [], []);
-  const mnnmEngineRecipes = useMemo(() => (mnnmCatalog ?? []).filter((item) => item.has_ingredients && item.ingredient_names.length > 0).map((item) => ({
+  const needsRecommendationEngine = stock.length > 0 || (page === "explore" && discoveryMode === "fridge");
+  const mnnmEngineRecipes = useMemo(() => !needsRecommendationEngine ? [] : (mnnmCatalog ?? []).filter((item) => item.has_ingredients && item.ingredient_names.length > 0).map((item) => ({
     id: item.id, name: item.name, ingredients: item.ingredient_names.map((name) => ({ ingredientId: name, sourceName: name, quantity: null, unit: "", optional: false })),
     method: "", totalTime: durationMinutes(item.total_time), servings: item.servings ? Number(item.servings.match(/\d+/)?.[0] ?? 0) || null : null,
     dataStatus: item.has_instructions ? "full_recipe" as const : "ingredients_only" as const, hasFullInstructions: item.has_instructions, steps: [],
-  })), [mnnmCatalog]);
-  const allRecommendationRecipes = useMemo(() => [...allLibraryRecipes, ...sourceEngineRecipes, ...mnnmEngineRecipes], [sourceEngineRecipes, allLibraryRecipes, mnnmEngineRecipes]);
-  const recommendations = useMemo(() => recommendRecipes({ stock, recipes: allRecommendationRecipes, preferences: { ...defaultRecommendationPreferences, ...prefs }, ingredients, now: new Date() }), [stock, prefs, allRecommendationRecipes, ingredientCatalogVersion]);
+  })), [mnnmCatalog, needsRecommendationEngine]);
+  const allRecommendationRecipes = useMemo(() => needsRecommendationEngine ? [...allLibraryRecipes, ...sourceEngineRecipes, ...mnnmEngineRecipes] : [], [needsRecommendationEngine, sourceEngineRecipes, allLibraryRecipes, mnnmEngineRecipes]);
+  const recommendations = useMemo(() => needsRecommendationEngine ? recommendRecipes({ stock, recipes: allRecommendationRecipes, preferences: { ...defaultRecommendationPreferences, ...prefs }, ingredients, now: new Date() }) : [], [needsRecommendationEngine, stock, prefs, allRecommendationRecipes, ingredientCatalogVersion]);
   const flexibleSuggestions = useMemo(() => suggestFlexibleRecipes(
     stock.filter((item) => !isExpired(item)),
     ingredients,
@@ -1045,7 +1052,7 @@ function App() {
     const isReadyByName = recipe.required.length > 0 && matchedCount === recipe.required.length;
     return matchesQuery && (savedFilter === "all" || (savedFilter === "ready" ? isReadyByName : !isReadyByName));
   }), [favorites, recipeById, savedQuery, savedFilter, ids]);
-  const savedReadyCount = favorites.map((id) => recipeById.get(id)).filter((recipe): recipe is Recipe => Boolean(recipe)).filter((recipe) => recipe.required.length > 0 && recipe.required.every((id) => ids.has(id))).length;
+  const savedReadyCount = useMemo(() => favorites.map((id) => recipeById.get(id)).filter((recipe): recipe is Recipe => Boolean(recipe)).filter((recipe) => recipe.required.length > 0 && recipe.required.every((id) => ids.has(id))).length, [favorites, recipeById, ids]);
   const sourceFeatureRecipes: Recipe[] = [];
   const homeFeatureSourcesReady = (mnnmCatalog !== null || mnnmLoad === "error")
     && (knorrRecipes !== null || knorrLoad === "error");
@@ -1074,9 +1081,9 @@ function App() {
       .sort((a, b) => b.rank - a.rank)
       .map(({ recipe }) => recipe);
   }, [previewRecommendations, recipeById, favorites, recentRecipeIds, allLibraryRecipes, mnnmCatalog, sourceFeatureRecipes, knorrRecipes, stock.length]);
-  const newestMnnmRecipe = stock.length === 0 && mnnmRecent.length > 0 ? mnnmRecipeFor(mnnmRecent[0]) : null;
+  const newestMnnmRecipe = useMemo(() => stock.length === 0 && mnnmRecent.length > 0 ? mnnmRecipeFor(mnnmRecent[0]) : null, [stock.length, mnnmRecent]);
   const newestFeaturedName = newestMnnmRecipe ? canonical(newestMnnmRecipe.name) : "";
-  const homeFeatureOptions = [...(newestMnnmRecipe ? [newestMnnmRecipe] : []), ...homeFeatureRecipes.filter((recipe) => recipe.id !== newestMnnmRecipe?.id && canonical(recipe.name) !== newestFeaturedName)];
+  const homeFeatureOptions = useMemo(() => [...(newestMnnmRecipe ? [newestMnnmRecipe] : []), ...homeFeatureRecipes.filter((recipe) => recipe.id !== newestMnnmRecipe?.id && canonical(recipe.name) !== newestFeaturedName)], [newestMnnmRecipe, newestFeaturedName, homeFeatureRecipes]);
   const homeFeatureOptionIndex = homeFeatureOptions.length ? homeFeatureIndex % homeFeatureOptions.length : 0;
   const shuffleHomeFeature = () => {
     if (homeFeatureShufflePending || homeFeatureOptions.length < 2) return;
@@ -1570,34 +1577,11 @@ function App() {
             ? "Đang nấu"
           : "Sở thích nấu";
   const shoppingCategoryFor = (name: string) => shoppingIngredientCategory(name, ingredientIndex);
-  const librarySourceResults = allLibraryRecipes.filter((recipe) => {
-    if (librarySourceFilter === "mnnm") return false;
-    if (librarySourceFilter === "knorr" && recipe.source.title !== "Knorr Việt Nam") return false;
-    if (librarySourceFilter === "internal" && (recipe.id.startsWith("copper:") || recipe.source.title === "Knorr Việt Nam")) return false;
-    if (librarySourceFilter === "copper" && !recipe.id.startsWith("copper:")) return false;
-    if (librarySourceFilter === "other" && recipe.source.title === "Knorr Việt Nam") return false;
-    const recipeIngredients = recipe.ingredients.map((item) => `${item.sourceName ?? item.ingredientId} ${nameFor(item.ingredientId)}`).join(" ");
-    const matchesQuery = canonical(`${recipe.name} ${recipeIngredients}`).includes(canonical(libraryQuery));
-    const matchesCategory = libraryCategory === "Tất cả" || recipe.category === libraryCategory;
-    const matchesStatus = libraryStatus === "Tất cả" || recipe.dataStatus === libraryStatus;
-    const matchesQuick = !libraryQuickOnly || (recipe.totalTime != null && recipe.totalTime <= 30);
-    const matchesDiet = !libraryDiet || (recipe.dataStatus === "full_recipe" && matchesNonMeatFilter(recipe.ingredients.filter((item) => !item.optional).map((item) => item.sourceName ?? nameFor(item.ingredientId))));
-    return matchesQuery && matchesCategory && matchesStatus && matchesDiet && matchesQuick;
-  });
-  const mnnmCatalogResults = (librarySourceFilter === "all" || librarySourceFilter === "mnnm" ? mnnmCatalog ?? [] : []).filter((item) => {
-    const searchText = `${item.name} ${item.description} ${item.ingredient_names.join(" ")} ${item.tags.join(" ")}`;
-    if (!canonical(searchText).includes(canonical(libraryQuery))) return false;
-    if (libraryCategory !== "Tất cả" && item.category !== libraryCategory) return false;
-    const status = item.has_instructions ? "full_recipe" : item.has_ingredients ? "ingredients_only" : "catalog_only";
-    if (libraryStatus !== "Tất cả" && status !== libraryStatus) return false;
-    const totalMinutes = durationMinutes(item.total_time);
-    if (libraryQuickOnly && (totalMinutes === null || totalMinutes > 30)) return false;
-    if (libraryDiet && !matchesNonMeatFilter(item.ingredient_names)) return false;
-    return true;
-  });
-  const mnnmCategories = [...new Set((mnnmCatalog ?? []).map((item) => item.category))];
-  const knorrCategories = (knorrRecipes ?? []).map((recipe) => recipe.category);
-  const libraryCategories = ["Tất cả", ...new Set([...allLibraryRecipes.map((recipe) => recipe.category), ...mnnmCategories, ...knorrCategories])];
+  const libraryCategories = useMemo(() => ["Tất cả", ...new Set([
+    ...allLibraryRecipes.map((recipe) => recipe.category),
+    ...(mnnmCatalog ?? []).map((item) => item.category),
+    ...(knorrRecipes ?? []).map((recipe) => recipe.category),
+  ])], [allLibraryRecipes, mnnmCatalog, knorrRecipes]);
   const homeFilterDefinitions = [
     { id: "category" as const, label: "Nhóm món", selected: libraryCategory, options: libraryCategories.map((value) => ({ value, label: value })) },
     { id: "source" as const, label: "Nguồn công thức", selected: ({ all: "Tất cả nguồn", internal: "Nội bộ", copper: "Copper", mnnm: "Món Ngon Mỗi Ngày", knorr: "Knorr Việt Nam", other: "Nguồn khác" } as const)[librarySourceFilter], options: [{ value: "all", label: "Tất cả nguồn" }, { value: "internal", label: "Nội bộ" }, { value: "copper", label: "Copper" }, { value: "mnnm", label: "Món Ngon Mỗi Ngày" }, { value: "knorr", label: "Knorr Việt Nam" }, { value: "other", label: "Nguồn khác" }] },
@@ -1606,24 +1590,51 @@ function App() {
   const exploreMethodCategories = ["Món canh", "Món kho", "Món xào", "Món nước", "Món ăn nhẹ", "Món chay"]
     .map((name) => libraryCategories.find((category) => category.toLocaleLowerCase("vi") === name.toLocaleLowerCase("vi")))
     .filter((category): category is string => Boolean(category));
-  const libraryCandidates: LibraryResultEntry[] = [
-    ...librarySourceResults.map((recipe) => ({ kind: "recipe" as const, key: recipe.id, recipe, name: recipe.name })),
-    ...mnnmCatalogResults.map((item) => ({ kind: "mnnm" as const, key: item.id, item, name: item.name })),
-  ];
-  const sortedLibraryCandidates = libraryCandidates.sort((a, b) => {
-    const relevance = recipeSearchRelevance(a.name, libraryQuery) - recipeSearchRelevance(b.name, libraryQuery);
-    const sourcePriority = (entry: LibraryResultEntry) => entry.kind === "mnnm" ? 0 : entry.kind === "recipe" && entry.recipe.source.title === "Knorr Việt Nam" ? 1 : 2;
-    const recipeDate = (entry: LibraryResultEntry) => entry.kind === "mnnm"
-      ? Date.parse(entry.item.published_at || entry.item.updated_at || "") || 0
-      : entry.kind === "recipe" && entry.recipe.source.title === "Knorr Việt Nam" ? Date.parse(entry.recipe.publishedAt ?? "") || 0 : 0;
-    return relevance || sourcePriority(a) - sourcePriority(b) || recipeDate(b) - recipeDate(a) || a.name.localeCompare(b.name, "vi", { sensitivity: "base" });
-  });
-  const libraryResults = groupCanonicalRecipeCandidates(
-    sortedLibraryCandidates,
-    (entry) => entry.name,
-    (entry) => entry.kind === "recipe" ? entry.recipe.ingredients.map((item) => item.sourceName ?? item.ingredientId) : entry.kind === "source" ? entry.item.ingredients ?? [] : entry.item.ingredient_names,
-    (entry) => entry.kind === "recipe" ? entry.recipe.source.title : entry.kind,
-  );
+  const libraryResults = useMemo(() => {
+    const librarySourceResults = allLibraryRecipes.filter((recipe) => {
+      if (librarySourceFilter === "mnnm") return false;
+      if (librarySourceFilter === "knorr" && recipe.source.title !== "Knorr Việt Nam") return false;
+      if (librarySourceFilter === "internal" && (recipe.id.startsWith("copper:") || recipe.source.title === "Knorr Việt Nam")) return false;
+      if (librarySourceFilter === "copper" && !recipe.id.startsWith("copper:")) return false;
+      if (librarySourceFilter === "other" && recipe.source.title === "Knorr Việt Nam") return false;
+      const recipeIngredients = recipe.ingredients.map((item) => `${item.sourceName ?? item.ingredientId} ${nameFor(item.ingredientId)}`).join(" ");
+      const matchesQuery = canonical(`${recipe.name} ${recipeIngredients}`).includes(canonical(libraryQuery));
+      const matchesCategory = libraryCategory === "Tất cả" || recipe.category === libraryCategory;
+      const matchesStatus = libraryStatus === "Tất cả" || recipe.dataStatus === libraryStatus;
+      const matchesQuick = !libraryQuickOnly || (recipe.totalTime != null && recipe.totalTime <= 30);
+      const matchesDiet = !libraryDiet || (recipe.dataStatus === "full_recipe" && matchesNonMeatFilter(recipe.ingredients.filter((item) => !item.optional).map((item) => item.sourceName ?? nameFor(item.ingredientId))));
+      return matchesQuery && matchesCategory && matchesStatus && matchesDiet && matchesQuick;
+    });
+    const mnnmCatalogResults = (librarySourceFilter === "all" || librarySourceFilter === "mnnm" ? mnnmCatalog ?? [] : []).filter((item) => {
+      const searchText = `${item.name} ${item.description} ${item.ingredient_names.join(" ")} ${item.tags.join(" ")}`;
+      if (!canonical(searchText).includes(canonical(libraryQuery))) return false;
+      if (libraryCategory !== "Tất cả" && item.category !== libraryCategory) return false;
+      const status = item.has_instructions ? "full_recipe" : item.has_ingredients ? "ingredients_only" : "catalog_only";
+      if (libraryStatus !== "Tất cả" && status !== libraryStatus) return false;
+      const totalMinutes = durationMinutes(item.total_time);
+      if (libraryQuickOnly && (totalMinutes === null || totalMinutes > 30)) return false;
+      if (libraryDiet && !matchesNonMeatFilter(item.ingredient_names)) return false;
+      return true;
+    });
+    const candidates: LibraryResultEntry[] = [
+      ...librarySourceResults.map((recipe) => ({ kind: "recipe" as const, key: recipe.id, recipe, name: recipe.name })),
+      ...mnnmCatalogResults.map((item) => ({ kind: "mnnm" as const, key: item.id, item, name: item.name })),
+    ];
+    candidates.sort((a, b) => {
+      const relevance = recipeSearchRelevance(a.name, libraryQuery) - recipeSearchRelevance(b.name, libraryQuery);
+      const sourcePriority = (entry: LibraryResultEntry) => entry.kind === "mnnm" ? 0 : entry.kind === "recipe" && entry.recipe.source.title === "Knorr Việt Nam" ? 1 : 2;
+      const recipeDate = (entry: LibraryResultEntry) => entry.kind === "mnnm"
+        ? Date.parse(entry.item.published_at || entry.item.updated_at || "") || 0
+        : entry.kind === "recipe" && entry.recipe.source.title === "Knorr Việt Nam" ? Date.parse(entry.recipe.publishedAt ?? "") || 0 : 0;
+      return relevance || sourcePriority(a) - sourcePriority(b) || recipeDate(b) - recipeDate(a) || a.name.localeCompare(b.name, "vi", { sensitivity: "base" });
+    });
+    return groupCanonicalRecipeCandidates(
+      candidates,
+      (entry) => entry.name,
+      (entry) => entry.kind === "recipe" ? entry.recipe.ingredients.map((item) => item.sourceName ?? item.ingredientId) : entry.kind === "source" ? entry.item.ingredients ?? [] : entry.item.ingredient_names,
+      (entry) => entry.kind === "recipe" ? entry.recipe.source.title : entry.kind,
+    );
+  }, [allLibraryRecipes, librarySourceFilter, libraryQuery, libraryCategory, libraryStatus, libraryQuickOnly, libraryDiet, ingredientCatalogVersion, mnnmCatalog]);
   const visibleLibraryResults = libraryResults.slice(0, libraryLimit);
   const activeCookStep = cookingRecipe?.steps[cookingStep];
   const nextCookStep = cookingRecipe?.steps[cookingStep + 1];
@@ -2223,7 +2234,7 @@ function App() {
             {savedVideos.length > 0 && <section className="history-box saved-video-box"><h3>Video muốn thử <span>{savedVideos.length}</span></h3>{savedVideos.map((video) => <article className="saved-video" key={video.id}><div><small>{video.platform === "youtube" ? "YouTube" : video.platform === "tiktok" ? "TikTok" : "Facebook"} · đã lưu {new Date(video.savedAt).toLocaleDateString("vi-VN")}</small>{video.note && <p>{video.note}</p>}<a href={video.url} target="_blank" rel="noreferrer">Mở video <ExternalLink size={13}/></a></div><button className="icon-button" onClick={() => setSavedVideos((items) => items.filter((item) => item.id !== video.id))} aria-label="Xóa link video"><X size={16}/></button></article>)}</section>}
             {cooked.length > 0 && <section className="history-box">
               <h3><History size={17} /> Món đã nấu</h3>
-              {cooked.map((id) => <p key={id}>{allLibraryRecipes.find((r) => r.id === id)?.name}</p>)}
+              {cooked.map((id) => <p key={id}>{recipeById.get(id)?.name}</p>)}
             </section>}
           </>
         )}
