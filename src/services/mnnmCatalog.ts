@@ -5,6 +5,7 @@ export type MnnmCatalogItem = {
   source_url: string;
   published_at?: string | null;
   updated_at?: string | null;
+  broadcast_date?: string | null;
   image_url: string | null;
   image_fallbacks: string[];
   category: string;

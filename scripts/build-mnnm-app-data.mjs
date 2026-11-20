@@ -90,6 +90,7 @@ for (const line of sourceLines) {
     source_url: recipe.source_url,
     published_at: recipe.date_published ?? null,
     updated_at: recipe.sitemap_lastmod ?? null,
+    broadcast_date: recipe.broadcast_date ?? null,
     image_url: images[0] ?? null,
     image_fallbacks: images.slice(1),
     category: categoryFor(recipe.tags),
@@ -119,8 +120,8 @@ await mkdir(outputDir, { recursive: true });
 for (const file of await readdir(outputDir)) if (/^recipes-\d+\.json$/.test(file)) await unlink(`${outputDir}/${file}`);
 await writeFile(`${outputDir}/index.json`, JSON.stringify({ source: "Món Ngon Mỗi Ngày", generated_at: new Date().toISOString(), recipes: index }));
 const newestRecipes = index
-  .filter((recipe) => recipe.has_instructions && (recipe.published_at || recipe.updated_at))
-  .sort((a, b) => Date.parse(b.published_at || b.updated_at || "") - Date.parse(a.published_at || a.updated_at || ""))
+  .filter((recipe) => recipe.has_instructions && (recipe.broadcast_date || recipe.published_at || recipe.updated_at))
+  .sort((a, b) => Date.parse(b.broadcast_date || b.published_at || b.updated_at || "") - Date.parse(a.broadcast_date || a.published_at || a.updated_at || ""))
   .slice(0, 8);
 await writeFile(`${outputDir}/recent.json`, JSON.stringify({ source: "Món Ngon Mỗi Ngày", generated_at: new Date().toISOString(), recipes: newestRecipes }));
 for (let offset = 0; offset < details.length; offset += shardSize) {

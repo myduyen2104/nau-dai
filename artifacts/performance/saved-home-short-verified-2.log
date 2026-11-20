@@ -1,0 +1,270 @@
+[profile] launched pixel4 CPU 4x; scenario=saved-home-short
+[profile] navigation status=200 url=http://127.0.0.1:4176/?page=home
+[profile] scenario actions completed
+{
+  "scenario": "saved-home-short",
+  "url": "http://127.0.0.1:4176/?page=home",
+  "httpStatus": 200,
+  "device": "Pixel 4",
+  "cpuThrottle": 4,
+  "abortedRequests": [],
+  "externalFailures": [],
+  "exploreReady": true,
+  "actions": [
+    {
+      "from": "Hôm nay",
+      "to": "Khám phá",
+      "dispatchMs": 2.8,
+      "observedLatencyMs": 4361,
+      "reached": true,
+      "before": {
+        "active": "Hôm nay",
+        "mainText": "Thứ Tư, 18 tháng 11\nBữa tối nhà mình\nChào buổi tối!\n\nHôm nay trong gian bếp nhỏ thơm mùi gì thế?\n\nMÓN MỚI NHẤT TỪ MÓN NGON MỖI NGÀY\n~17 phút\nSườn cọng nướng rau",
+        "nodes": 216,
+        "recipeCards": 0,
+        "memory": 5492860
+      },
+      "after": {
+        "active": "Khám phá",
+        "mainText": "Chợ hôm nay có gì ngon?\nTất cả món\nTheo tủ lạnh\n0\n🥬 Rau muống non\n🐟 Cá tươi\n⏱ Món < 30 phút\n🌿 Món chay\nMón ngon theo cách nấu\nTất cả\nGỏi & Rau xào\nMuống xào,",
+        "nodes": 426,
+        "recipeCards": 30,
+        "memory": 38704652
+      }
+    },
+    {
+      "from": "Khám phá",
+      "to": "Đã lưu",
+      "dispatchMs": 3.3,
+      "observedLatencyMs": 1617,
+      "reached": true,
+      "before": {
+        "active": "Khám phá",
+        "mainText": "Chợ hôm nay có gì ngon?\nTất cả món\nTheo tủ lạnh\n0\n🥬 Rau muống non\n🐟 Cá tươi\n⏱ Món < 30 phút\n🌿 Món chay\nMón ngon theo cách nấu\nTất cả\nGỏi & Rau xào\nMuống xào,",
+        "nodes": 426,
+        "recipeCards": 30,
+        "memory": 38704652
+      },
+      "after": {
+        "active": "Đã lưu",
+        "mainText": "SỔ TAY MÓN NGON\nMón bạn muốn nấu lại\nTìm món\n♡\nChưa có món đã lưu",
+        "nodes": 83,
+        "recipeCards": 0,
+        "memory": 56053402
+      }
+    },
+    {
+      "from": "Đã lưu",
+      "to": "Hôm nay",
+      "dispatchMs": 0.2,
+      "observedLatencyMs": 3291,
+      "reached": true,
+      "before": {
+        "active": "Đã lưu",
+        "mainText": "SỔ TAY MÓN NGON\nMón bạn muốn nấu lại\nTìm món\n♡\nChưa có món đã lưu",
+        "nodes": 83,
+        "recipeCards": 0,
+        "memory": 56053402
+      },
+      "after": {
+        "active": "Hôm nay",
+        "mainText": "Thứ Tư, 18 tháng 11\nBữa tối nhà mình\nChào buổi tối!\n\nHôm nay trong gian bếp nhỏ thơm mùi gì thế?\n\nMÓN MỚI NHẤT TỪ MÓN NGON MỖI NGÀY\n~17 phút\nSườn cọng nướng rau",
+        "nodes": 216,
+        "recipeCards": 0,
+        "memory": 52654351
+      }
+    },
+    {
+      "from": "Hôm nay",
+      "to": "Khám phá",
+      "dispatchMs": 0.9,
+      "observedLatencyMs": 1850,
+      "reached": true,
+      "before": {
+        "active": "Hôm nay",
+        "mainText": "Thứ Tư, 18 tháng 11\nBữa tối nhà mình\nChào buổi tối!\n\nHôm nay trong gian bếp nhỏ thơm mùi gì thế?\n\nMÓN MỚI NHẤT TỪ MÓN NGON MỖI NGÀY\n~17 phút\nSườn cọng nướng rau",
+        "nodes": 216,
+        "recipeCards": 0,
+        "memory": 52654351
+      },
+      "after": {
+        "active": "Khám phá",
+        "mainText": "Chợ hôm nay có gì ngon?\nTất cả món\nTheo tủ lạnh\n0\n🥬 Rau muống non\n🐟 Cá tươi\n⏱ Món < 30 phút\n🌿 Món chay\nMón ngon theo cách nấu\nTất cả\nGỏi & Rau xào\nMuống xào,",
+        "nodes": 426,
+        "recipeCards": 30,
+        "memory": 59486051
+      }
+    },
+    {
+      "from": "Khám phá",
+      "to": "Đã lưu",
+      "dispatchMs": 0.8,
+      "observedLatencyMs": 1400,
+      "reached": true,
+      "before": {
+        "active": "Khám phá",
+        "mainText": "Chợ hôm nay có gì ngon?\nTất cả món\nTheo tủ lạnh\n0\n🥬 Rau muống non\n🐟 Cá tươi\n⏱ Món < 30 phút\n🌿 Món chay\nMón ngon theo cách nấu\nTất cả\nGỏi & Rau xào\nMuống xào,",
+        "nodes": 426,
+        "recipeCards": 30,
+        "memory": 59486051
+      },
+      "after": {
+        "active": "Đã lưu",
+        "mainText": "SỔ TAY MÓN NGON\nMón bạn muốn nấu lại\nTìm món\n♡\nChưa có món đã lưu",
+        "nodes": 83,
+        "recipeCards": 0,
+        "memory": 72254586
+      }
+    },
+    {
+      "from": "Đã lưu",
+      "to": "Hôm nay",
+      "dispatchMs": 0.5,
+      "observedLatencyMs": 2802,
+      "reached": true,
+      "before": {
+        "active": "Đã lưu",
+        "mainText": "SỔ TAY MÓN NGON\nMón bạn muốn nấu lại\nTìm món\n♡\nChưa có món đã lưu",
+        "nodes": 83,
+        "recipeCards": 0,
+        "memory": 72254586
+      },
+      "after": {
+        "active": "Hôm nay",
+        "mainText": "Thứ Tư, 18 tháng 11\nBữa tối nhà mình\nChào buổi tối!\n\nHôm nay trong gian bếp nhỏ thơm mùi gì thế?\n\nMÓN MỚI NHẤT TỪ MÓN NGON MỖI NGÀY\n~17 phút\nSườn cọng nướng rau",
+        "nodes": 216,
+        "recipeCards": 0,
+        "memory": 97722946
+      }
+    },
+    {
+      "from": "Hôm nay",
+      "to": "Khám phá",
+      "dispatchMs": 0.1,
+      "observedLatencyMs": 1803,
+      "reached": true,
+      "before": {
+        "active": "Hôm nay",
+        "mainText": "Thứ Tư, 18 tháng 11\nBữa tối nhà mình\nChào buổi tối!\n\nHôm nay trong gian bếp nhỏ thơm mùi gì thế?\n\nMÓN MỚI NHẤT TỪ MÓN NGON MỖI NGÀY\n~17 phút\nSườn cọng nướng rau",
+        "nodes": 216,
+        "recipeCards": 0,
+        "memory": 97722946
+      },
+      "after": {
+        "active": "Khám phá",
+        "mainText": "Chợ hôm nay có gì ngon?\nTất cả món\nTheo tủ lạnh\n0\n🥬 Rau muống non\n🐟 Cá tươi\n⏱ Món < 30 phút\n🌿 Món chay\nMón ngon theo cách nấu\nTất cả\nGỏi & Rau xào\nMuống xào,",
+        "nodes": 426,
+        "recipeCards": 30,
+        "memory": 40262924
+      }
+    },
+    {
+      "from": "Khám phá",
+      "to": "Đã lưu",
+      "dispatchMs": 1.3,
+      "observedLatencyMs": 1649,
+      "reached": true,
+      "before": {
+        "active": "Khám phá",
+        "mainText": "Chợ hôm nay có gì ngon?\nTất cả món\nTheo tủ lạnh\n0\n🥬 Rau muống non\n🐟 Cá tươi\n⏱ Món < 30 phút\n🌿 Món chay\nMón ngon theo cách nấu\nTất cả\nGỏi & Rau xào\nMuống xào,",
+        "nodes": 426,
+        "recipeCards": 30,
+        "memory": 40262924
+      },
+      "after": {
+        "active": "Đã lưu",
+        "mainText": "SỔ TAY MÓN NGON\nMón bạn muốn nấu lại\nTìm món\n♡\nChưa có món đã lưu",
+        "nodes": 83,
+        "recipeCards": 0,
+        "memory": 53773274
+      }
+    },
+    {
+      "from": "Đã lưu",
+      "to": "Hôm nay",
+      "dispatchMs": 0.8,
+      "observedLatencyMs": 3011,
+      "reached": true,
+      "before": {
+        "active": "Đã lưu",
+        "mainText": "SỔ TAY MÓN NGON\nMón bạn muốn nấu lại\nTìm món\n♡\nChưa có món đã lưu",
+        "nodes": 83,
+        "recipeCards": 0,
+        "memory": 53773274
+      },
+      "after": {
+        "active": "Hôm nay",
+        "mainText": "Thứ Tư, 18 tháng 11\nBữa tối nhà mình\nChào buổi tối!\n\nHôm nay trong gian bếp nhỏ thơm mùi gì thế?\n\nMÓN MỚI NHẤT TỪ MÓN NGON MỖI NGÀY\n~17 phút\nSườn cọng nướng rau",
+        "nodes": 216,
+        "recipeCards": 0,
+        "memory": 78630733
+      }
+    },
+    {
+      "from": "Hôm nay",
+      "to": "Khám phá",
+      "dispatchMs": 0.7,
+      "observedLatencyMs": 1644,
+      "reached": true,
+      "before": {
+        "active": "Hôm nay",
+        "mainText": "Thứ Tư, 18 tháng 11\nBữa tối nhà mình\nChào buổi tối!\n\nHôm nay trong gian bếp nhỏ thơm mùi gì thế?\n\nMÓN MỚI NHẤT TỪ MÓN NGON MỖI NGÀY\n~17 phút\nSườn cọng nướng rau",
+        "nodes": 216,
+        "recipeCards": 0,
+        "memory": 78630733
+      },
+      "after": {
+        "active": "Khám phá",
+        "mainText": "Chợ hôm nay có gì ngon?\nTất cả món\nTheo tủ lạnh\n0\n🥬 Rau muống non\n🐟 Cá tươi\n⏱ Món < 30 phút\n🌿 Món chay\nMón ngon theo cách nấu\nTất cả\nGỏi & Rau xào\nMuống xào,",
+        "nodes": 426,
+        "recipeCards": 30,
+        "memory": 91447164
+      }
+    },
+    {
+      "from": "Khám phá",
+      "to": "Đã lưu",
+      "dispatchMs": 0.4,
+      "observedLatencyMs": 1332,
+      "reached": true,
+      "before": {
+        "active": "Khám phá",
+        "mainText": "Chợ hôm nay có gì ngon?\nTất cả món\nTheo tủ lạnh\n0\n🥬 Rau muống non\n🐟 Cá tươi\n⏱ Món < 30 phút\n🌿 Món chay\nMón ngon theo cách nấu\nTất cả\nGỏi & Rau xào\nMuống xào,",
+        "nodes": 426,
+        "recipeCards": 30,
+        "memory": 91447164
+      },
+      "after": {
+        "active": "Đã lưu",
+        "mainText": "SỔ TAY MÓN NGON\nMón bạn muốn nấu lại\nTìm món\n♡\nChưa có món đã lưu",
+        "nodes": 83,
+        "recipeCards": 0,
+        "memory": 103657996
+      }
+    },
+    {
+      "from": "Đã lưu",
+      "to": "Hôm nay",
+      "dispatchMs": 0.6,
+      "observedLatencyMs": 2723,
+      "reached": true,
+      "before": {
+        "active": "Đã lưu",
+        "mainText": "SỔ TAY MÓN NGON\nMón bạn muốn nấu lại\nTìm món\n♡\nChưa có món đã lưu",
+        "nodes": 83,
+        "recipeCards": 0,
+        "memory": 103657996
+      },
+      "after": {
+        "active": "Hôm nay",
+        "mainText": "Thứ Tư, 18 tháng 11\nBữa tối nhà mình\nChào buổi tối!\n\nHôm nay trong gian bếp nhỏ thơm mùi gì thế?\n\nMÓN MỚI NHẤT TỪ MÓN NGON MỖI NGÀY\n~17 phút\nSườn cọng nướng rau",
+        "nodes": 216,
+        "recipeCards": 0,
+        "memory": 118755764
+      }
+    }
+  ],
+  "finalPage": "Hôm nay",
+  "tracePath": "/home/duyen/Workspace/nau-dai/artifacts/performance/saved-home-short-verified-2-cpu4x-trace.json"
+}
+[profile] trace stopped

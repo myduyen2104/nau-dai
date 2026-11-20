@@ -416,6 +416,9 @@ function flexibleRecipeImageFor(recipe: Recipe) {
   return recipeImageFor(`flexible-template:${imageTemplate}`);
 }
 function App() {
+  const [showIntro, setShowIntro] = useState(true);
+  const [introMounted, setIntroMounted] = useState(true);
+  const introImageRef = useRef<HTMLImageElement>(null);
   const [initialCookingSession] = useState(() => loadActiveCookSession());
   const [, setRecipeImagesVersion] = useState(0);
   const [ingredientCatalogVersion, setIngredientCatalogVersion] = useState(0);
@@ -428,14 +431,15 @@ function App() {
   const qrInstallRequested = new URLSearchParams(window.location.search).get("install") === "1";
   const [isMobileLayout, setIsMobileLayout] = useState(() => window.matchMedia("(max-width: 699px)").matches);
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
-  const [showInstallHelp, setShowInstallHelp] = useState(qrInstallRequested && !isStandalone());
-  const [installCheckComplete, setInstallCheckComplete] = useState(!qrInstallRequested || isIOSDevice() || !window.isSecureContext);
+  const [showInstallHelp, setShowInstallHelp] = useState(() => !isStandalone());
+  const [installCheckComplete, setInstallCheckComplete] = useState(() => isIOSDevice() || !window.isSecureContext);
   const [storageWarning, setStorageWarning] = useState("");
   const [canPersist, setCanPersist] = useState(false);
   const [videoUrlDraft, setVideoUrlDraft] = useState("");
   const [videoNoteDraft, setVideoNoteDraft] = useState("");
   const [videoFormError, setVideoFormError] = useState("");
   const [activeTrendingVideoId, setActiveTrendingVideoId] = useState<string | null>(null);
+  const [trendingOverlayVisible, setTrendingOverlayVisible] = useState(false);
   const [trendingVideos, setTrendingVideos] = useState<YouTubeCatalogVideo[]>([]);
   const [trendingCatalogStatus, setTrendingCatalogStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [trendingCatalogRetry, setTrendingCatalogRetry] = useState(0);
@@ -469,16 +473,51 @@ function App() {
     return () => media.removeEventListener("change", updateLayout);
   }, []);
   useEffect(() => {
+    const image = introImageRef.current;
+    const introStartedAt = performance.now();
+    const minimumIntroDuration = 2200;
+    let firstFrame = 0;
+    let secondFrame = 0;
+    let hideTimer = 0;
+    const hideAfterPaint = () => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        setShowIntro(false);
+        setIntroMounted(false);
+        return;
+      }
+      firstFrame = window.requestAnimationFrame(() => {
+        secondFrame = window.requestAnimationFrame(() => {
+          hideTimer = window.setTimeout(() => setShowIntro(false), Math.max(0, minimumIntroDuration - (performance.now() - introStartedAt)));
+        });
+      });
+    };
+    if (!image || (image.complete && image.naturalWidth > 0)) {
+      hideAfterPaint();
+    } else {
+      image.addEventListener("load", hideAfterPaint, { once: true });
+      image.addEventListener("error", hideAfterPaint, { once: true });
+    }
+    return () => {
+      if (image) {
+        image.removeEventListener("load", hideAfterPaint);
+        image.removeEventListener("error", hideAfterPaint);
+      }
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+      window.clearTimeout(hideTimer);
+    };
+  }, []);
+  useEffect(() => {
     if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname.startsWith("127."))) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
     const onPrompt = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPromptEvent); };
     const onInstalled = () => { setInstallPrompt(null); setShowInstallHelp(false); };
     window.addEventListener("appinstalled", onInstalled);
-    const installCheckTimer = qrInstallRequested && window.isSecureContext && !isIOSDevice()
+    const installCheckTimer = !isStandalone() && window.isSecureContext && !isIOSDevice()
       ? window.setTimeout(() => setInstallCheckComplete(true), 1800)
       : undefined;
-    if (qrInstallRequested && isIOSDevice()) setInstallCheckComplete(true);
+    if (isIOSDevice()) setInstallCheckComplete(true);
     const capturePrompt = (event: Event) => { onPrompt(event); setInstallCheckComplete(true); };
     window.addEventListener("beforeinstallprompt", capturePrompt);
     if (qrInstallRequested) window.history.replaceState({}, "", `${window.location.pathname}${window.location.hash}`);
@@ -905,6 +944,15 @@ function App() {
     document.querySelectorAll<HTMLElement>("[data-trend-video-id]").forEach((card) => observer.observe(card));
     return () => observer.disconnect();
   }, [page, trendingVideos, visibleTrendingCount]);
+  useEffect(() => {
+    if (page !== "trending" || !activeTrendingVideoId) {
+      setTrendingOverlayVisible(false);
+      return;
+    }
+    setTrendingOverlayVisible(true);
+    const timeout = window.setTimeout(() => setTrendingOverlayVisible(false), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [page, activeTrendingVideoId]);
   useEffect(() => {
     if (page !== "trending" || !activeTrendingVideoId || failedTrendingVideoIds.includes(activeTrendingVideoId)) return;
     const host = youtubePlayerContainerRef.current;
@@ -1642,6 +1690,20 @@ function App() {
   const cookTimerLabel = cookTimerSeconds === null ? "--:--" : `${String(Math.floor(cookTimerSeconds / 60)).padStart(2, "0")}:${String(cookTimerSeconds % 60).padStart(2, "0")}`;
   return (
     <div className={`app app-page-${page}`}>
+      {introMounted && <div className={`app-intro${showIntro ? "" : " is-exiting"}`} role="status" aria-label="Nấu Đại Đi đang khởi động" aria-hidden={!showIntro} onTransitionEnd={(event) => { if (!showIntro && event.propertyName === "opacity") setIntroMounted(false); }}>
+        <div className="approved-intro-art">
+          <img ref={introImageRef} src="/images/intro/kitchen-warm-a-base.webp?v=9" alt="Minh họa nồi súp màu cam cùng rau củ trên nền kem" />
+          <img className="intro-sprite-item intro-lid-item" src="/images/intro/lid-sprite.png?v=4" alt="" aria-hidden="true" />
+          <span className="intro-item intro-steam-reveal" aria-hidden="true">
+            <img className="intro-steam-item" src="/images/intro/steam-sprite.png?v=9" alt="" />
+            <img className="intro-steam-tint" src="/images/intro/steam-sprite.png?v=9" alt="" />
+          </span>
+          <img className="intro-sprite-item intro-tomato-item" src="/images/intro/tomato-sprite.png?v=4" alt="" aria-hidden="true" />
+          <img className="intro-sprite-item intro-scallion-item" src="/images/intro/scallion-sprite.png?v=4" alt="" aria-hidden="true" />
+          <img className="intro-sprite-item intro-carrot-item" src="/images/intro/carrot-sprite.png?v=4" alt="" aria-hidden="true" />
+          <span className="intro-progress-track" aria-hidden="true"><span className="intro-progress-fill" /></span>
+        </div>
+      </div>}
       <header className={`topbar${page === "cook" ? " cook-topbar" : page === "trending" ? " video-topbar" : ""}`}>
         {page === "cook" ? <>
           <button className="cook-close" onClick={returnToRecipeFromCooking} aria-label="Quay lại chi tiết món ăn"><ArrowLeft size={20}/></button>
@@ -2108,7 +2170,7 @@ function App() {
                       ? <iframe className="trend-youtube-frame" ref={(element) => { youtubePlayerContainerRef.current = element; }} src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.videoId)}?enablejsapi=1&autoplay=1&playsinline=1&rel=0&origin=${encodeURIComponent(window.location.origin)}`} title={`Video hướng dẫn nấu ăn: ${video.title}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/>
                       : <button className="trend-player-poster" onClick={() => { if (failed) window.open(video.videoUrl, "_blank", "noopener,noreferrer"); else setActiveTrendingVideoId(video.videoId); }} aria-label={failed ? `Mở video gốc: ${video.title}` : `Phát video: ${video.title}`}><img src={`https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/hqdefault.jpg`} alt="" loading={index < 2 ? "eager" : "lazy"} onError={(event) => { event.currentTarget.style.visibility = "hidden"; }}/><span className="trend-play-button">{failed ? <ExternalLink size={25}/> : <Play size={25} fill="currentColor"/>}</span><small>{failed ? "Mở YouTube" : "Chạm để xem"}</small></button>}
                   </div>
-                  <div className="trend-card-body"><div className="trend-card-meta"><small>{video.creatorName || "YouTube"}{video.durationSeconds ? ` · ${Math.floor(video.durationSeconds / 60)} phút` : ""}</small><span>{index + 1} / {trendingVideos.length}</span></div><div className="trend-card-copy"><h3>{video.title}</h3><small>{video.moderationStatus === "accepted" ? "Chưa xem thủ công" : "Cần xem lại"}</small>{videoHistoryMessage && playing && <small role="status">{videoHistoryMessage}</small>}{index === visibleTrendingVideos.length - 1 && visibleTrendingCount >= trendingVideos.length && <small className="video-end-message">Đã xem hết video.</small>}</div></div>
+                  <div className={`trend-card-body${activeTrendingVideoId === video.videoId && trendingOverlayVisible ? " is-overlay-visible" : ""}`}><div className="trend-card-meta"><small>{video.creatorName || "YouTube"}{video.durationSeconds ? ` · ${Math.floor(video.durationSeconds / 60)} phút` : ""}</small><span>{index + 1} / {trendingVideos.length}</span></div><div className="trend-card-copy"><h3>{video.title}</h3><small>{video.moderationStatus === "accepted" ? "Chưa xem thủ công" : "Cần xem lại"}</small>{videoHistoryMessage && playing && <small role="status">{videoHistoryMessage}</small>}{index === visibleTrendingVideos.length - 1 && visibleTrendingCount >= trendingVideos.length && <small className="video-end-message">Đã xem hết video.</small>}</div></div>
                   <div className="trend-card-actions"><button className={`trend-save-button${saved ? " is-saved" : ""}`} onClick={() => toggleSavedTrendingVideo(video)} aria-pressed={saved}><Bookmark size={20} fill={saved ? "currentColor" : "none"}/><span>{saved ? "Đã lưu" : "Lưu"}</span></button><a className="trend-original" href={video.videoUrl} target="_blank" rel="noreferrer" aria-label="Mở video trên YouTube"><ExternalLink size={20}/></a></div>
                 </article>;
               })}</div>
