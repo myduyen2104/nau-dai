@@ -153,7 +153,7 @@ try {
   const newVideoCount = result.catalog.videos.filter((video) => !previousIds.has(video.videoId)).length;
   await mkdir(dirname(fileURLToPath(output)), { recursive: true });
   await writeFile(output, `${JSON.stringify(result.catalog)}\n`);
-  const videoListQuotaUnits = videoDetailsCalls;
+  const videoDetailsQuotaUnits = videoDetailsCalls;
   console.log(JSON.stringify({
     catalogSize: result.catalog.videos.length,
     newVideos: newVideoCount,
