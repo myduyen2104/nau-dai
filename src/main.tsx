@@ -1,7 +1,8 @@
-import { Component, StrictMode, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode, type SyntheticEvent } from "react";
+import { Component, StrictMode, useDeferredValue, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode, type SyntheticEvent, type TouchEvent as ReactTouchEvent } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Apple,
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
   BookOpen,
@@ -40,17 +41,15 @@ import {
 import { ingredients as coreIngredients, recipes, nameFor as coreNameFor, type Ingredient, type Recipe } from "./data";
 import copperCatalog from "./data/recipes/copper-vietnam.json";
 import type { SavedVideo, TrendingVideo } from "./types/trending";
-import { clearVideoWatchHistory, freshYoutubeCatalogVideos, inferYoutubeFeedInterests, newVideoSessionSeed, rankYoutubeFeed, readVideoWatchHistory, recordVideoWatchEvent, type YouTubeCatalogVideo, type VideoWatchRecord } from "./services/youtubeFeed";
+import { freshYoutubeCatalogVideos, inferYoutubeFeedInterests, newVideoSessionSeed, rankYoutubeFeed, readVideoWatchHistory, recordVideoWatchEvent, type YouTubeCatalogVideo, type VideoWatchRecord } from "./services/youtubeFeed";
 import { formatRecipeQuantity, isScalableRecipeUnit, scaleRecipeQuantity } from "./utils/servings";
 import { recordRecentRecipe, visibleRecentRecipes } from "./utils/recipeHistory";
 import { isValidDateOnly } from "./utils/dateOnly";
 import { normalizeVietnamese, resolveIngredientId, buildIngredientIndex, canonicalIngredientPreference } from "./utils/ingredientMatcher";
 import { parseSupportedVideoUrl } from "./utils/trending";
-import { defaultRecommendationPreferences, recommendRecipes } from "./services/recommendationEngine";
 import { migrateLocalStorage } from "./utils/storageMigration";
 import { groupCanonicalRecipeCandidates, recipeSearchRelevance, sourceRecipeCompleteness, sourceRecipeEligibleForFridge, sourceRecipeMissingIngredients, sourceRecipeWarnings, type CanonicalRecipeCandidate, type SourceRecipeCatalogItem, type SourceRecipeDetail } from "./services/sourceRecipeCatalog";
 import { getSourceInstructionSupplement } from "./services/sourceInstructionSupplements";
-import { suggestFlexibleRecipes } from "./services/flexibleRecipeSuggestions";
 import { filterRecommendationList, RECOMMENDATION_PAGE_SIZE, uniqueRecommendationsByRecipeTitle } from "./services/recommendationList";
 import { canonicalShoppingIngredientName, shoppingIngredientCategory, shoppingIngredientIdentity } from "./services/shoppingList";
 import { durationMinutes, loadMnnmRecipeDetail, normalizeMnnmInstructionSteps, type MnnmCatalogItem, type MnnmRecipeDetail } from "./services/mnnmCatalog";
@@ -86,6 +85,8 @@ type LibraryResultEntry =
   | { kind: "source"; key: string; item: SourceRecipeCatalogItem; name: string }
   | { kind: "mnnm"; key: string; item: MnnmCatalogItem; name: string };
 type LibraryResultGroup = CanonicalRecipeCandidate<LibraryResultEntry>;
+type RecommendationRuntime = Pick<typeof import("./services/recommendationEngine"), "defaultRecommendationPreferences" | "recommendRecipes">;
+type FlexibleSuggestionRuntime = Pick<typeof import("./services/flexibleRecipeSuggestions"), "suggestFlexibleRecipes">;
 function pageFromQuery(value: string | null): Page {
   if (value === "recipes") return "explore";
   return value === "home" || value === "fridge" || value === "explore" || value === "trending" || value === "favorites" || value === "settings" || value === "shopping" || value === "cook" ? value : "home";
@@ -432,7 +433,6 @@ function App() {
   const [isMobileLayout, setIsMobileLayout] = useState(() => window.matchMedia("(max-width: 699px)").matches);
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
   const [showInstallHelp, setShowInstallHelp] = useState(() => !isStandalone());
-  const [installCheckComplete, setInstallCheckComplete] = useState(() => isIOSDevice() || !window.isSecureContext);
   const [storageWarning, setStorageWarning] = useState("");
   const [canPersist, setCanPersist] = useState(false);
   const [videoUrlDraft, setVideoUrlDraft] = useState("");
@@ -443,6 +443,9 @@ function App() {
   const [trendingVideos, setTrendingVideos] = useState<YouTubeCatalogVideo[]>([]);
   const [trendingCatalogStatus, setTrendingCatalogStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [trendingCatalogRetry, setTrendingCatalogRetry] = useState(0);
+  const [trendingFeedRefreshing, setTrendingFeedRefreshing] = useState(false);
+  const [videoPulling, setVideoPulling] = useState(false);
+  const [videoPullReady, setVideoPullReady] = useState(false);
   const [visibleTrendingCount, setVisibleTrendingCount] = useState(12);
   const [failedTrendingVideoIds, setFailedTrendingVideoIds] = useState<string[]>([]);
   const [videoHistoryMessage, setVideoHistoryMessage] = useState("");
@@ -455,6 +458,8 @@ function App() {
   const [libraryDiet, setLibraryDiet] = useState(false);
   const [libraryQuickOnly, setLibraryQuickOnly] = useState(false);
   const [libraryLimit, setLibraryLimit] = useState(30);
+  const [recommendationRuntime, setRecommendationRuntime] = useState<RecommendationRuntime | null>(null);
+  const [flexibleSuggestionRuntime, setFlexibleSuggestionRuntime] = useState<FlexibleSuggestionRuntime | null>(null);
   const [discoveryMode, setDiscoveryMode] = useState<"all" | "fridge">(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("page") === "recipes" || params.get("mode") === "fridge" ? "fridge" : "all";
@@ -514,17 +519,12 @@ function App() {
     const onPrompt = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPromptEvent); };
     const onInstalled = () => { setInstallPrompt(null); setShowInstallHelp(false); };
     window.addEventListener("appinstalled", onInstalled);
-    const installCheckTimer = !isStandalone() && window.isSecureContext && !isIOSDevice()
-      ? window.setTimeout(() => setInstallCheckComplete(true), 1800)
-      : undefined;
-    if (isIOSDevice()) setInstallCheckComplete(true);
-    const capturePrompt = (event: Event) => { onPrompt(event); setInstallCheckComplete(true); };
+    const capturePrompt = (event: Event) => { onPrompt(event); };
     window.addEventListener("beforeinstallprompt", capturePrompt);
     if (qrInstallRequested) window.history.replaceState({}, "", `${window.location.pathname}${window.location.hash}`);
     return () => {
       window.removeEventListener("beforeinstallprompt", capturePrompt);
       window.removeEventListener("appinstalled", onInstalled);
-      if (installCheckTimer !== undefined) window.clearTimeout(installCheckTimer);
     };
   }, []);
   const [stock, setStock] = useState<Stock[]>(() => load("fridge-stock", [])),
@@ -564,16 +564,41 @@ function App() {
     [cookVoiceMessage, setCookVoiceMessage] = useState("Chạm mic để bật lệnh giọng nói"),
     [done, setDone] = useState<number[]>(initialCookingSession.done),
     [selectedSubstitutions, setSelectedSubstitutions] = useState<Record<string, string>>({});
+  const deferredIngredientQuery = useDeferredValue(query);
   useEffect(() => {
-    if (page !== "fridge" && page !== "explore" && page !== "shopping" && !(page === "home" && stock.length > 0)) return;
+    if (page !== "explore" && !(stock.length > 0 && (page === "fridge" || page === "home"))) return;
     let cancelled = false;
     void loadSourceIngredientCatalog().then(() => { if (!cancelled) setIngredientCatalogVersion((version) => version || 1); });
     return () => { cancelled = true; };
   }, [page, stock.length]);
+  useEffect(() => {
+    if (!query.trim() || ingredientCatalogVersion > 0) return;
+    const timer = window.setTimeout(() => {
+      void loadSourceIngredientCatalog().then(() => setIngredientCatalogVersion((version) => version || 1));
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [query, ingredientCatalogVersion]);
+  useEffect(() => {
+    if (stock.length === 0 || recommendationRuntime || flexibleSuggestionRuntime) return;
+    let cancelled = false;
+    void Promise.all([
+      import("./services/recommendationEngine"),
+      import("./services/flexibleRecipeSuggestions"),
+    ]).then(([recommendations, flexibleSuggestions]) => {
+      if (cancelled) return;
+      setRecommendationRuntime(recommendations);
+      setFlexibleSuggestionRuntime(flexibleSuggestions);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [stock.length, recommendationRuntime, flexibleSuggestionRuntime]);
   const recipeDetailScrollRef = useRef<HTMLDivElement | null>(null);
   const mainScrollRef = useRef<HTMLElement | null>(null);
   const trendingReturnPageRef = useRef<Page>(page === "trending" ? "home" : page);
   const trendingFeedRef = useRef<HTMLDivElement | null>(null);
+  const videoPullStartYRef = useRef<number | null>(null);
+  const videoPullTriggeredRef = useRef(false);
+  const videoFeedPreserveOnRefreshRef = useRef(false);
+  const resetVideoFeedScrollRef = useRef(false);
   const youtubePlayerContainerRef = useRef<HTMLElement | null>(null);
   const youtubePlayerRef = useRef<YouTubePlayer | null>(null);
   const trendingWatchHistoryRef = useRef<VideoWatchRecord[]>([]);
@@ -594,6 +619,71 @@ function App() {
     await recordVideoWatchEvent(videoId, event, watchedSeconds);
     const nextHistory = await readVideoWatchHistory();
     trendingWatchHistoryRef.current = nextHistory;
+  };
+  const resetVideoPullCard = () => {
+    const feed = trendingFeedRef.current;
+    const card = feed?.querySelector<HTMLElement>(".trend-feed-card");
+    feed?.classList.remove("is-pulling");
+    card?.classList.remove("is-pulling");
+    card?.style.removeProperty("--video-pull-offset");
+  };
+  const beginVideoFeedPull = (event: ReactTouchEvent<HTMLElement>) => {
+    const feed = trendingFeedRef.current;
+    const target = event.target;
+    if ((feed && feed.scrollTop > 1) || trendingCatalogStatus === "loading" || (target instanceof Element && target.closest(".video-back, .trend-card-actions, a"))) {
+      videoPullStartYRef.current = null;
+      return;
+    }
+    videoPullStartYRef.current = event.touches[0]?.clientY ?? null;
+    videoPullTriggeredRef.current = false;
+    setVideoPulling(false);
+    setVideoPullReady(false);
+    resetVideoPullCard();
+    feed?.classList.add("is-pulling");
+    trendingFeedRef.current?.querySelector<HTMLElement>(".trend-feed-card")?.classList.add("is-pulling");
+  };
+  const moveVideoFeedPull = (event: ReactTouchEvent<HTMLElement>) => {
+    const startY = videoPullStartYRef.current;
+    const currentY = event.touches[0]?.clientY;
+    if (startY === null || currentY === undefined) return;
+    const distance = currentY - startY;
+    const pulling = distance >= 12;
+    const ready = distance >= 112;
+    const feed = trendingFeedRef.current;
+    if (feed && feed.scrollTop !== 0) feed.scrollTop = 0;
+    const card = trendingFeedRef.current?.querySelector<HTMLElement>(".trend-feed-card");
+    card?.style.setProperty("--video-pull-offset", `${Math.min(148, Math.max(0, distance * 0.88))}px`);
+    setVideoPulling((previous) => previous === pulling ? previous : pulling);
+    setVideoPullReady((previous) => previous === ready ? previous : ready);
+  };
+  const cancelVideoFeedPull = () => {
+    videoPullStartYRef.current = null;
+    videoPullTriggeredRef.current = false;
+    resetVideoPullCard();
+    setVideoPulling(false);
+    setVideoPullReady(false);
+  };
+  const finishVideoFeedPull = (event: ReactTouchEvent<HTMLElement>) => {
+    const startY = videoPullStartYRef.current;
+    videoPullStartYRef.current = null;
+    const feed = trendingFeedRef.current;
+    const endY = event.changedTouches[0]?.clientY;
+    if (startY === null || endY === undefined || (feed && feed.scrollTop > 1) || endY - startY < 112 || trendingCatalogStatus === "loading") {
+      resetVideoPullCard();
+      setVideoPulling(false);
+      setVideoPullReady(false);
+      return;
+    }
+    videoPullTriggeredRef.current = true;
+    window.setTimeout(() => { videoPullTriggeredRef.current = false; }, 400);
+    resetVideoPullCard();
+    setVisibleTrendingCount(Math.min(12, trendingVideos.length));
+    setVideoPulling(false);
+    setVideoPullReady(false);
+    videoFeedPreserveOnRefreshRef.current = true;
+    resetVideoFeedScrollRef.current = true;
+    setTrendingFeedRefreshing(true);
+    setTrendingCatalogRetry((count) => count + 1);
   };
   useEffect(() => { savedVideosRef.current = savedVideos; }, [savedVideos]);
   const popNavigationRef = useRef(false);
@@ -889,8 +979,10 @@ function App() {
     }
     let cancelled = false;
     const controller = new AbortController();
+    const preserveExistingVideos = videoFeedPreserveOnRefreshRef.current;
+    videoFeedPreserveOnRefreshRef.current = false;
     setTrendingCatalogStatus("loading");
-    setTrendingVideos([]);
+    if (!preserveExistingVideos) setTrendingVideos([]);
     setActiveTrendingVideoId(null);
     setVideoHistoryMessage("");
     const sessionSeed = (newVideoSessionSeed() + (++trendingSessionCounterRef.current * 0x9e3779b9)) >>> 0;
@@ -911,9 +1003,13 @@ function App() {
       setVisibleTrendingCount(Math.min(12, ranked.length));
       setFailedTrendingVideoIds([]);
       seenTrendingVideoIdsRef.current = new Set();
+      setTrendingFeedRefreshing(false);
       setTrendingCatalogStatus("ready");
     }).catch(() => {
-      if (!cancelled && !controller.signal.aborted) setTrendingCatalogStatus("error");
+      if (!cancelled && !controller.signal.aborted) {
+        setTrendingFeedRefreshing(false);
+        setTrendingCatalogStatus("error");
+      }
     });
     return () => { cancelled = true; controller.abort(); };
   }, [page, prefs.vegetarian, prefs.quick, trendingCatalogRetry]);
@@ -944,6 +1040,11 @@ function App() {
     document.querySelectorAll<HTMLElement>("[data-trend-video-id]").forEach((card) => observer.observe(card));
     return () => observer.disconnect();
   }, [page, trendingVideos, visibleTrendingCount]);
+  useEffect(() => {
+    if (!resetVideoFeedScrollRef.current) return;
+    resetVideoFeedScrollRef.current = false;
+    requestAnimationFrame(() => trendingFeedRef.current?.scrollTo({ top: 0, behavior: "auto" }));
+  }, [trendingVideos]);
   useEffect(() => {
     if (page !== "trending" || !activeTrendingVideoId) {
       setTrendingOverlayVisible(false);
@@ -1028,7 +1129,7 @@ function App() {
     };
   }, [modal]);
   const isExpired = (item: Stock) => item.fresh === "spoiled" || (!!item.expiresAt && (!isValidDateOnly(item.expiresAt) || new Date(`${item.expiresAt}T23:59:59`).getTime() < Date.now()));
-  const ids = new Set(stock.filter((item) => !isExpired(item)).map((x) => x.id));
+  const ids = useMemo(() => new Set(stock.filter((item) => !isExpired(item)).map((x) => x.id)), [stock]);
   const useSoonItems = useMemo(() => stock.filter((item) => !isExpired(item) && (
     item.fresh === "soon" || item.fresh === "urgent" || (!!item.expiresAt && (() => {
       const until = new Date(`${item.expiresAt}T23:59:59`).getTime() - Date.now();
@@ -1037,19 +1138,19 @@ function App() {
   )).sort((a, b) => (a.expiresAt ?? "9999-12-31").localeCompare(b.expiresAt ?? "9999-12-31")).slice(0, 4), [stock]);
   const ingredientIndex = useMemo(() => buildIngredientIndex(ingredients), [ingredientCatalogVersion]);
   const sourceEngineRecipes = useMemo(() => [], []);
-  const needsRecommendationEngine = stock.length > 0 || (page === "explore" && discoveryMode === "fridge");
+  const needsRecommendationEngine = stock.length > 0;
   const mnnmEngineRecipes = useMemo(() => !needsRecommendationEngine ? [] : (mnnmCatalog ?? []).filter((item) => item.has_ingredients && item.ingredient_names.length > 0).map((item) => ({
     id: item.id, name: item.name, ingredients: item.ingredient_names.map((name) => ({ ingredientId: name, sourceName: name, quantity: null, unit: "", optional: false })),
     method: "", totalTime: durationMinutes(item.total_time), servings: item.servings ? Number(item.servings.match(/\d+/)?.[0] ?? 0) || null : null,
     dataStatus: item.has_instructions ? "full_recipe" as const : "ingredients_only" as const, hasFullInstructions: item.has_instructions, steps: [],
   })), [mnnmCatalog, needsRecommendationEngine]);
   const allRecommendationRecipes = useMemo(() => needsRecommendationEngine ? [...allLibraryRecipes, ...sourceEngineRecipes, ...mnnmEngineRecipes] : [], [needsRecommendationEngine, sourceEngineRecipes, allLibraryRecipes, mnnmEngineRecipes]);
-  const recommendations = useMemo(() => needsRecommendationEngine ? recommendRecipes({ stock, recipes: allRecommendationRecipes, preferences: { ...defaultRecommendationPreferences, ...prefs }, ingredients, now: new Date() }) : [], [needsRecommendationEngine, stock, prefs, allRecommendationRecipes, ingredientCatalogVersion]);
-  const flexibleSuggestions = useMemo(() => suggestFlexibleRecipes(
+  const recommendations = useMemo(() => needsRecommendationEngine && recommendationRuntime ? recommendationRuntime.recommendRecipes({ stock, recipes: allRecommendationRecipes, preferences: { ...recommendationRuntime.defaultRecommendationPreferences, ...prefs }, ingredients, now: new Date() }) : [], [needsRecommendationEngine, recommendationRuntime, stock, prefs, allRecommendationRecipes, ingredientCatalogVersion]);
+  const flexibleSuggestions = useMemo(() => flexibleSuggestionRuntime?.suggestFlexibleRecipes(
     stock.filter((item) => !isExpired(item)),
     ingredients,
     { avoid: prefs.avoid, vegan: prefs.vegan, vegetarian: prefs.vegetarian, avoidMeat: prefs.avoidMeat, avoidSeafood: prefs.avoidSeafood },
-  ), [stock, prefs, ingredientCatalogVersion]);
+  ) ?? [], [flexibleSuggestionRuntime, stock, prefs, ingredientCatalogVersion]);
   const recommendationById = useMemo(() => new Map(recommendations.map((item) => [item.recipeId, item])), [recommendations]);
   const recommendationsByCategory = useMemo(() => ({
     ready: recommendations.filter((item) => item.category === "ready"),
@@ -1246,22 +1347,34 @@ function App() {
     if (known) return known.name;
     return recipe.ingredients.find((item) => (resolveIngredientId(item.sourceName ?? item.ingredientId, ingredientIndex) ?? `custom:${normalizeVietnamese(item.sourceName ?? item.ingredientId)}`) === id)?.sourceName ?? id.replace(/^custom:/, "");
   };
-  const quickPickerItems = ["egg", "chicken", "pork", "beef", "shrimp", "fish", "tomato", "scallion", "garlic", "carrot", "onion", "cabbage", "mushroom", "potato", "cucumber", "bean-sprout", "spinach", "pumpkin", "broccoli", "bell-pepper", "water-spinach", "ginger", "lemongrass", "cilantro", "chili", "lime", "rice", "noodle", "vermicelli", "tofu", "fish-sauce", "soy-sauce", "oil", "salt", "sugar", "oyster-sauce", "eggplant", "corn", "sticky-rice", "banana"]
-    .map((id) => ingredients.find((item) => item.id === id))
-    .filter((item): item is (typeof ingredients)[number] => Boolean(item));
-  const searchKey = ingredientSearchKey(query);
-  const searchItems = ingredients.filter((i) => ingredientSearchKey(`${i.name} ${i.aliases.join(" ")}`).includes(searchKey) && !ids.has(i.id));
-  if (searchKey) searchItems.sort((a, b) => {
-    const score = (item: Ingredient) => {
-      const name = ingredientSearchKey(item.name);
-      if (name === searchKey) return 0;
-      if (name.startsWith(searchKey)) return 1;
-      if (item.aliases.some((alias) => ingredientSearchKey(alias) === searchKey)) return 2;
-      if (item.aliases.some((alias) => ingredientSearchKey(alias).startsWith(searchKey))) return 3;
-      return 4;
-    };
-    return score(a) - score(b);
-  });
+  const quickPickerGroups = [
+    { label: "Rau củ quả", ids: ["bean-sprout", "spinach", "rau-lan", "water-spinach", "potato", "tomato", "pumpkin", "winter-melon", "luffa", "okra", "bottle-gourd", "cucumber", "bok-choy", "cabbage", "carrot", "green-beans", "chayote", "eggplant", "corn", "lettuce", "scallion", "garlic", "onion", "mushroom"] },
+    { label: "Thịt, cá & trứng", ids: ["egg", "quail-egg", "chicken", "pork", "beef", "shrimp", "fish", "fish-ball", "ha-cao", "cha-lua", "lap-xuong", "cha-gio", "tofu"] },
+    { label: "Tinh bột", ids: ["rice", "noodle", "vermicelli", "glass-noodle", "hu-tieu", "fresh-noodle", "pho-noodle", "bread"] },
+  ].map((group) => ({ ...group, items: group.ids.map((id) => ingredients.find((item) => item.id === id)).filter((item): item is (typeof ingredients)[number] => Boolean(item)) }));
+  const ingredientSearchEntries = useMemo(() => ingredients.map((item) => {
+    const nameKey = ingredientSearchKey(item.name);
+    const aliasKeys = item.aliases.map(ingredientSearchKey);
+    return { item, nameKey, aliasKeys, searchText: [nameKey, ...aliasKeys].join(" ") };
+  }), [ingredientCatalogVersion]);
+  const searchKey = ingredientSearchKey(deferredIngredientQuery);
+  const searchItems = useMemo(() => {
+    if (!searchKey) return [];
+    const ranked: { item: Ingredient; score: number }[] = [];
+    for (const entry of ingredientSearchEntries) {
+      if (ids.has(entry.item.id) || !entry.searchText.includes(searchKey)) continue;
+      const score = entry.nameKey === searchKey ? 0
+        : entry.nameKey.startsWith(searchKey) ? 1
+          : entry.aliasKeys.some((alias) => alias === searchKey) ? 2
+            : entry.aliasKeys.some((alias) => alias.startsWith(searchKey)) ? 3
+              : 4;
+      const position = ranked.findIndex((candidate) => score < candidate.score);
+      if (position >= 0) ranked.splice(position, 0, { item: entry.item, score });
+      else if (ranked.length < 5) ranked.push({ item: entry.item, score });
+      if (ranked.length > 5) ranked.pop();
+    }
+    return ranked.map(({ item }) => item);
+  }, [ingredientSearchEntries, ids, searchKey]);
   function add(id: string) {
     const ingredient = ingredients.find((item) => item.id === id);
     const name = ingredient?.name ?? id.replace(/^custom-/, "").replace(/-/g, " ");
@@ -1601,9 +1714,17 @@ function App() {
   function showTab(t: "ready" | "substitution" | "almost" | "use_soon" | "discover") {
     setTab(t);
     setDiscoveryMode("fridge");
+    if (page === "fridge") {
+      window.requestAnimationFrame(() => document.getElementById("fridge-recommendations")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      return;
+    }
     setPage("explore");
   }
   function showBestTab() {
+    if (page === "fridge") {
+      showTab("ready");
+      return;
+    }
     const best = ["ready", "substitution", "use_soon", "almost", "discover"].find((candidate) => recommendationsByCategory[candidate as keyof typeof recommendationsByCategory].length) as "ready" | "substitution" | "almost" | "use_soon" | "discover" | undefined;
     showTab(best ?? "ready");
   }
@@ -1692,19 +1813,19 @@ function App() {
     <div className={`app app-page-${page}`}>
       {introMounted && <div className={`app-intro${showIntro ? "" : " is-exiting"}`} role="status" aria-label="Nấu Đại Đi đang khởi động" aria-hidden={!showIntro} onTransitionEnd={(event) => { if (!showIntro && event.propertyName === "opacity") setIntroMounted(false); }}>
         <div className="approved-intro-art">
-          <img ref={introImageRef} src="/images/intro/kitchen-warm-a-base.webp?v=9" alt="Minh họa nồi súp màu cam cùng rau củ trên nền kem" />
-          <img className="intro-sprite-item intro-lid-item" src="/images/intro/lid-sprite.png?v=4" alt="" aria-hidden="true" />
+          <img ref={introImageRef} src="/images/intro/kitchen-warm-a-base.webp?v=9" alt="Minh họa nồi súp màu cam cùng rau củ trên nền kem" fetchPriority="high" decoding="async" />
+          <img className="intro-sprite-item intro-lid-item" src="/images/intro/lid-sprite.webp?v=5" alt="" aria-hidden="true" />
           <span className="intro-item intro-steam-reveal" aria-hidden="true">
-            <img className="intro-steam-item" src="/images/intro/steam-sprite.png?v=9" alt="" />
-            <img className="intro-steam-tint" src="/images/intro/steam-sprite.png?v=9" alt="" />
+            <img className="intro-steam-item" src="/images/intro/steam-sprite.webp?v=10" alt="" />
+            <img className="intro-steam-tint" src="/images/intro/steam-sprite.webp?v=10" alt="" />
           </span>
-          <img className="intro-sprite-item intro-tomato-item" src="/images/intro/tomato-sprite.png?v=4" alt="" aria-hidden="true" />
-          <img className="intro-sprite-item intro-scallion-item" src="/images/intro/scallion-sprite.png?v=4" alt="" aria-hidden="true" />
-          <img className="intro-sprite-item intro-carrot-item" src="/images/intro/carrot-sprite.png?v=4" alt="" aria-hidden="true" />
+          <img className="intro-sprite-item intro-tomato-item" src="/images/intro/tomato-sprite.webp?v=5" alt="" aria-hidden="true" />
+          <img className="intro-sprite-item intro-scallion-item" src="/images/intro/scallion-sprite.webp?v=5" alt="" aria-hidden="true" />
+          <img className="intro-sprite-item intro-carrot-item" src="/images/intro/carrot-sprite.webp?v=5" alt="" aria-hidden="true" />
           <span className="intro-progress-track" aria-hidden="true"><span className="intro-progress-fill" /></span>
         </div>
       </div>}
-      <header className={`topbar${page === "cook" ? " cook-topbar" : page === "trending" ? " video-topbar" : ""}`}>
+      <header className={`topbar${page === "cook" ? " cook-topbar" : page === "trending" ? " video-topbar" : ""}`} onTouchStart={page === "trending" ? beginVideoFeedPull : undefined} onTouchMove={page === "trending" ? moveVideoFeedPull : undefined} onTouchEnd={page === "trending" ? finishVideoFeedPull : undefined} onTouchCancel={cancelVideoFeedPull}>
         {page === "cook" ? <>
           <button className="cook-close" onClick={returnToRecipeFromCooking} aria-label="Quay lại chi tiết món ăn"><ArrowLeft size={20}/></button>
           <div className="cook-header-title"><small>{cookingRecipe?.name ?? "Đang nấu"}</small><strong>Đang nấu · Bước {cookingRecipe ? cookingStep + 1 : 0}/{cookingRecipe?.steps.length ?? 0}</strong></div>
@@ -1713,18 +1834,7 @@ function App() {
         </> : page === "trending" ? <>
           <button className="video-back" onClick={() => setPage(trendingReturnPageRef.current)} aria-label="Quay lại"><ArrowLeft size={20}/></button>
           <span className="video-topbar-title">Video hướng dẫn nấu ăn</span>
-          <span className="video-topbar-count">{trendingVideos.length} video</span>
-          <button className="video-history-clear" onClick={() => {
-            void clearVideoWatchHistory().then(() => {
-              trendingWatchHistoryRef.current = [];
-              const interests = [...(prefs.vegetarian ? ["món chay"] : []), ...(prefs.quick ? ["món nhanh"] : []), ...inferYoutubeFeedInterests(trendingVideos, [], savedVideosRef.current.map((video) => video.url))];
-              const next = rankYoutubeFeed(trendingVideos, [], newVideoSessionSeed(), interests);
-              setTrendingVideos(next);
-              setActiveTrendingVideoId(null);
-              setVideoHistoryMessage("Đã xóa lịch sử xem trên thiết bị này.");
-              trendingFeedRef.current?.scrollTo({ top: 0 });
-            });
-          }} aria-label="Xóa lịch sử video đã xem" title="Xóa lịch sử video đã xem"><History size={18}/></button>
+          {trendingCatalogStatus === "error" && trendingVideos.length > 0 && <span className="video-refresh-status" role="status">Chưa cập nhật được</span>}
         </> : <>
           <div className="brand"><img className="brand-logo-image" src="/icon.svg" alt=""/><span className="brand-wordmark"><span>Nấu</span><span>Đại</span><span>Đi</span></span></div>
           <div className="topbar-actions">
@@ -1870,28 +1980,36 @@ function App() {
             <section className="page-lead fridge-lead">
               <span className="screen-kicker"><Leaf size={14}/> BẾP NHÀ MÌNH</span>
               <h1>Tủ lạnh</h1>
-              <p>Thêm nguyên liệu, tìm món và theo dõi hạn dùng.</p>
+              <p>Thêm nguyên liệu,<br/>Tìm món và theo dõi hạn dùng.</p>
             </section>
             {stock.length > 0 && <section className="fridge-summary" aria-label="Tóm tắt tủ lạnh">
               <div className="fridge-summary-heading"><span className="fridge-summary-icon"><Apple size={20}/></span><div><b>Trong tủ</b></div></div>
               <div className="fridge-summary-stats">
                 <button className="fridge-stat urgent" onClick={() => showTab("use_soon")}><small>CẦN DÙNG SỚM</small><b>{useSoonItems.length}</b><span>{useSoonItems.length ? "nguyên liệu" : "chưa có"}</span></button>
-                <button className="fridge-stat ready" onClick={() => showTab("ready")}><small>GỢI Ý NẤU</small><b>{recommendationsByCategory.ready.length}</b><span>đủ loại nguyên liệu</span></button>
+                <button className="fridge-stat ready" onClick={showBestTab}><small>MÓN KHỚP TỦ</small><b>{recommendationsByCategory.ready.length}</b><span>đủ loại nguyên liệu</span></button>
               </div>
               <button className="fridge-summary-cta" onClick={showBestTab}><CookingPot size={18}/> Tìm món từ tủ lạnh <ArrowRight size={17}/></button>
             </section>}
             {useSoonItems.length > 0 && <section className="fridge-rescue-panel"><div><span className="rescue-symbol"><Clock size={18}/></span><span><b>Cần ưu tiên dùng sớm</b><small>Nấu Đại Đi sẽ đưa các món này lên trước trong gợi ý.</small></span></div><div className="rescue-items">{useSoonItems.map((item) => { const name = ingredients.find((entry) => entry.id === item.id)?.name ?? item.name ?? item.id; return <span className="rescue-item" key={item.id}>{name}<small>{item.fresh === "urgent" ? "Dùng ngay" : item.expiresAt ? `Hạn ${item.expiresAt}` : "Sắp hết hạn"}</small></span>; })}</div></section>}
-            {recommendationsByCategory.ready.length > 0 && <section className="fridge-ready-section" aria-labelledby="fridge-ready-title">
-              <div className="fridge-ready-heading"><div><h2 id="fridge-ready-title">Có thể nấu từ tủ</h2><p>Khớp theo tên nguyên liệu; kiểm tra lượng và tình trạng trước khi nấu.</p></div><button onClick={() => showTab("ready")}>Tất cả <ChevronRight size={15}/></button></div>
-              <div className="fridge-ready-track">{recommendationsByCategory.ready.slice(0, 4).map((item) => {
-                const recipe = recipeById.get(item.recipeId);
-                if (!recipe) return null;
-                const image = recipe.source.title === "Knorr Việt Nam" ? undefined : recipeImageFor(recipe.id);
-                return <button className="fridge-ready-card" key={recipe.id} onClick={() => openRecipe(recipe)}>
-                  <span className="fridge-ready-image">{image ? <img src={image.cardImagePath ?? image.imagePath} alt={image.imageType === "ai_illustration" ? `Ảnh minh họa AI cho món ${recipe.name}` : `Ảnh ${recipe.name}`} loading="lazy" decoding="async"/> : <span>{recipe.emoji}</span>}{recipe.totalTime != null && <small><Clock size={12}/>{recipe.totalTime} phút</small>}</span>
-                  <span className="fridge-ready-copy"><b>{recipe.name}</b><small>{item.matchedIngredients.length} tên nguyên liệu khớp · {recipe.dataStatus === "full_recipe" && recipe.steps.length ? "Có hướng dẫn" : "Cần xem dữ liệu món"}</small></span>
-                </button>;
-              })}</div>
+            {stock.length > 0 && <section className="fridge-recommendations" id="fridge-recommendations" aria-labelledby="fridge-recommendations-title">
+              <div className="fridge-ready-heading">
+                <div><h2 id="fridge-recommendations-title">Món gợi ý từ tủ lạnh</h2><p>Danh sách này dùng nguyên liệu bạn đang có; các món thiếu nguyên liệu sẽ ghi rõ phần còn thiếu.</p></div>
+              </div>
+              {flexibleSuggestions.length > 0 && <FlexibleSuggestionPanel recipes={flexibleSuggestions} onOpen={openRecipe}/>}
+              <div className="tabs fridge-recommendation-tabs" role="tablist" aria-label="Nhóm món gợi ý từ tủ lạnh">
+                <button role="tab" aria-selected={tab === "ready"} className={tab === "ready" ? "active" : ""} onClick={() => setTab("ready")}>Đủ nguyên liệu <span>{recommendationsByCategory.ready.length}</span></button>
+                <button role="tab" aria-selected={tab === "substitution"} className={tab === "substitution" ? "active" : ""} onClick={() => setTab("substitution")}>Có thể thay <span>{recommendationsByCategory.substitution.length}</span></button>
+                <button role="tab" aria-selected={tab === "almost"} className={tab === "almost" ? "active" : ""} onClick={() => setTab("almost")}>Thiếu nguyên liệu <span>{recommendationsByCategory.almost.length}</span></button>
+                <button role="tab" aria-selected={tab === "use_soon"} className={tab === "use_soon" ? "active" : ""} onClick={() => setTab("use_soon")}>Cần dùng sớm <span>{recommendationsByCategory.use_soon.length}</span></button>
+              </div>
+              {recommendationsByCategory[tab].length ? <div className="recipe-list favorites-recipe-list">
+                {recommendationsByCategory[tab].slice(0, recommendationLimit).map((item) => {
+                  const recipe = recipeById.get(item.recipeId);
+                  if (!recipe) return null;
+                  return <RecipeCard key={recipe.id} recipe={recipe} missing={item.missingIngredients} owned={item.matchedIngredients} ratio={item.matchPercentage} urgent={item.urgent} quantityStatus={item.quantityStatus} score={item.score} reasons={item.reasons} substitutions={item.substitutions} ingredientName={(id) => recommendationName(recipe, id)} onClick={() => openRecipe(recipe)} />;
+                })}
+              </div> : <div className="preview-empty fridge-recommendations-empty"><span className="preview-empty-mark"><CookingPot size={21}/></span><div><b>{tab === "ready" ? "Chưa có công thức khớp hoàn toàn" : "Chưa có món trong nhóm này"}</b><p>{tab === "ready" ? "Thử xem nhóm Có thể thay hoặc Thiếu ít để tìm món tận dụng nguyên liệu đang có." : "Danh sách sẽ hiện món phù hợp khi có kết quả trong nhóm này."}</p></div></div>}
+              {recommendationsByCategory[tab].length > recommendationLimit && <button className="recommendation-load-more" onClick={() => setRecommendationLimit((current) => current + RECOMMENDATION_PAGE_SIZE)}>Xem thêm {Math.min(RECOMMENDATION_PAGE_SIZE, recommendationsByCategory[tab].length - recommendationLimit)} món</button>}
             </section>}
             <section className="input-card">
               <div className="add-heading"><div><b>Thêm vào tủ</b></div><button type="button" className={pickerOpen ? "picker-toggle active" : "picker-toggle"} onClick={() => setPickerOpen((v) => !v)} aria-expanded={pickerOpen} aria-controls="ingredient-picker"><Grid2X2 size={16}/>{pickerOpen ? "Thu gọn" : "Chọn nhanh"}</button></div>
@@ -1912,7 +2030,7 @@ function App() {
                 </button>
               </label>
               {pickerMessage && <div className="picker-status" role="status" aria-live="polite"><span>{pickerMessage}</span>{pickerUndoId && <button type="button" onClick={() => { setStock((items) => items.filter((item) => item.id !== pickerUndoId)); setPickerMessage("Đã hoàn tác."); setPickerUndoId(""); }}>Hoàn tác</button>}</div>}
-              {query && (
+              {deferredIngredientQuery && (
                 <div className="suggestions" role="group" aria-label="Kết quả tìm nguyên liệu">
                   {searchItems.slice(0, 5).map((item) => (
                     <button type="button" key={item.id} onClick={() => add(item.id)}>
@@ -1921,17 +2039,22 @@ function App() {
                   ))}
                   {!searchItems.length && (
                     <button type="button" onClick={addCustom}>
-                      <span>Thêm “{query}” của riêng bạn</span><Plus size={17} aria-hidden="true" />
+                      <span>Thêm “{deferredIngredientQuery}” của riêng bạn</span><Plus size={17} aria-hidden="true" />
                     </button>
                   )}
                 </div>
               )}
               {pickerOpen && !query && (
                 <div className="ingredient-picker" id="ingredient-picker">
-                  <section className="picker-popular"><div className="picker-section-head"><b>⚡ Chọn nhanh</b></div><div className="ingredient-chip-list">{quickPickerItems.map((item) => {
-                    const selected = ids.has(item.id);
-                    return <button type="button" key={item.id} className={`ingredient-chip${selected ? " selected" : ""}`} aria-pressed={selected} onClick={() => selected ? setStock((stockItems) => stockItems.filter((stockItem) => stockItem.id !== item.id)) : add(item.id)}><IngredientVisual name={item.name} emoji={item.emoji} className="ingredient-chip-emoji"/><span>{item.name}</span>{selected ? <Check size={13}/> : <Plus size={13}/>}</button>;
-                  })}</div></section>
+                  <section className="picker-popular" aria-label="Danh mục nguyên liệu chọn nhanh">
+                    {quickPickerGroups.map((group) => <section className="quick-ingredient-group" key={group.label} aria-label={group.label}>
+                      <h3>{group.label}<span>{group.items.length}</span></h3>
+                      <div className="ingredient-chip-list">{group.items.map((item) => {
+                        const selected = ids.has(item.id);
+                        return <button type="button" key={item.id} className={`ingredient-chip${selected ? " selected" : ""}`} aria-pressed={selected} onClick={() => selected ? setStock((stockItems) => stockItems.filter((stockItem) => stockItem.id !== item.id)) : add(item.id)}><IngredientVisual name={item.name} emoji={item.emoji} className="ingredient-chip-emoji"/><span>{item.name}</span>{selected ? <Check size={13}/> : <Plus size={13}/>}</button>;
+                      })}</div>
+                    </section>)}
+                  </section>
                 </div>
               )}
             </section>
@@ -2153,14 +2276,14 @@ function App() {
               <div className="recipe-intro-icon"><BookOpen size={21}/></div>
               <div><b>Video hướng dẫn nấu ăn</b><p>Vuốt để xem · lưu clip để xem lại. Một số clip sẽ mở trên YouTube.</p></div>
             </section>
-            {trendingCatalogStatus === "loading" && <div className="video-feed-state" role="status">Đang tải danh sách video…</div>}
-            {trendingCatalogStatus === "error" && <div className="video-feed-state" role="alert"><p>Chưa tải được catalog video. Kiểm tra mạng rồi thử lại.</p><button onClick={() => setTrendingCatalogRetry((count) => count + 1)}>Thử lại</button></div>}
+            {trendingCatalogStatus === "loading" && !trendingVideos.length && <div className="video-feed-state" role="status">Đang tải danh sách video…</div>}
+            {trendingCatalogStatus === "error" && !trendingVideos.length && <div className="video-feed-state" role="alert"><p>Chưa tải được catalog video. Kiểm tra mạng rồi kéo xuống để thử lại.</p></div>}
             {trendingCatalogStatus === "ready" && !trendingVideos.length && <div className="video-feed-state"><p>Chưa có video nấu ăn.</p></div>}
-            {trendingCatalogStatus === "ready" && trendingVideos.length > 0 && <>
-              <div ref={trendingFeedRef} className="trending-list trend-feed" aria-label="Luồng video hướng dẫn nấu ăn" onScroll={(event) => {
+            {(trendingCatalogStatus === "ready" || trendingVideos.length > 0) && trendingVideos.length > 0 && <>
+              <div ref={trendingFeedRef} className={`trending-list trend-feed${trendingFeedRefreshing ? " is-refreshing" : ""}`} aria-label="Luồng video hướng dẫn nấu ăn. Kéo clip đầu tiên xuống để cập nhật và xáo trộn clip chưa xem." onTouchStart={beginVideoFeedPull} onTouchMove={moveVideoFeedPull} onTouchEnd={finishVideoFeedPull} onTouchCancel={cancelVideoFeedPull} onScroll={(event) => {
                 const element = event.currentTarget;
                 if (visibleTrendingCount < trendingVideos.length && element.scrollTop + element.clientHeight * 2.5 >= element.scrollHeight) setVisibleTrendingCount((count) => Math.min(trendingVideos.length, count + 12));
-              }}>{visibleTrendingVideos.map((video, index) => {
+              }}><div className={`video-pull-indicator${videoPulling || videoPullReady || trendingFeedRefreshing ? " is-visible" : ""}`} role="status" aria-live="polite"><ArrowDown size={17}/><span>{trendingFeedRefreshing ? "Đang cập nhật clip" : videoPullReady ? "Thả để cập nhật" : "Kéo xuống để cập nhật"}</span></div>{visibleTrendingVideos.map((video, index) => {
                 const saved = savedVideos.some((item) => item.url === video.videoUrl);
                 const playing = activeTrendingVideoId === video.videoId;
                 const failed = failedTrendingVideoIds.includes(video.videoId);
@@ -2168,9 +2291,9 @@ function App() {
                   <div className="trend-player">
                     {playing && !failed
                       ? <iframe className="trend-youtube-frame" ref={(element) => { youtubePlayerContainerRef.current = element; }} src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.videoId)}?enablejsapi=1&autoplay=1&playsinline=1&rel=0&origin=${encodeURIComponent(window.location.origin)}`} title={`Video hướng dẫn nấu ăn: ${video.title}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/>
-                      : <button className="trend-player-poster" onClick={() => { if (failed) window.open(video.videoUrl, "_blank", "noopener,noreferrer"); else setActiveTrendingVideoId(video.videoId); }} aria-label={failed ? `Mở video gốc: ${video.title}` : `Phát video: ${video.title}`}><img src={`https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/hqdefault.jpg`} alt="" loading={index < 2 ? "eager" : "lazy"} onError={(event) => { event.currentTarget.style.visibility = "hidden"; }}/><span className="trend-play-button">{failed ? <ExternalLink size={25}/> : <Play size={25} fill="currentColor"/>}</span><small>{failed ? "Mở YouTube" : "Chạm để xem"}</small></button>}
+                      : <button className="trend-player-poster" onClick={() => { if (videoPullTriggeredRef.current) { videoPullTriggeredRef.current = false; return; } if (failed) window.open(video.videoUrl, "_blank", "noopener,noreferrer"); else setActiveTrendingVideoId(video.videoId); }} aria-label={failed ? `Mở video gốc: ${video.title}` : `Phát video: ${video.title}`}><img src={`https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/hqdefault.jpg`} alt="" loading={index < 2 ? "eager" : "lazy"} onError={(event) => { event.currentTarget.style.visibility = "hidden"; }}/><span className="trend-play-button">{failed ? <ExternalLink size={25}/> : <Play size={25} fill="currentColor"/>}</span><small>{failed ? "Mở YouTube" : "Chạm để xem"}</small></button>}
                   </div>
-                  <div className={`trend-card-body${activeTrendingVideoId === video.videoId && trendingOverlayVisible ? " is-overlay-visible" : ""}`}><div className="trend-card-meta"><small>{video.creatorName || "YouTube"}{video.durationSeconds ? ` · ${Math.floor(video.durationSeconds / 60)} phút` : ""}</small><span>{index + 1} / {trendingVideos.length}</span></div><div className="trend-card-copy"><h3>{video.title}</h3><small>{video.moderationStatus === "accepted" ? "Chưa xem thủ công" : "Cần xem lại"}</small>{videoHistoryMessage && playing && <small role="status">{videoHistoryMessage}</small>}{index === visibleTrendingVideos.length - 1 && visibleTrendingCount >= trendingVideos.length && <small className="video-end-message">Đã xem hết video.</small>}</div></div>
+                  <div className={`trend-card-body${activeTrendingVideoId === video.videoId && trendingOverlayVisible ? " is-overlay-visible" : ""}`}><div className="trend-card-meta"><small>{video.creatorName || "YouTube"}{video.durationSeconds ? ` · ${Math.floor(video.durationSeconds / 60)} phút` : ""}</small></div><div className="trend-card-copy"><h3>{video.title}</h3><small>{video.moderationStatus === "accepted" ? "Chưa xem thủ công" : "Cần xem lại"}</small>{videoHistoryMessage && playing && <small role="status">{videoHistoryMessage}</small>}{index === visibleTrendingVideos.length - 1 && visibleTrendingCount >= trendingVideos.length && <small className="video-end-message">Đã xem hết video.</small>}</div></div>
                   <div className="trend-card-actions"><button className={`trend-save-button${saved ? " is-saved" : ""}`} onClick={() => toggleSavedTrendingVideo(video)} aria-pressed={saved}><Bookmark size={20} fill={saved ? "currentColor" : "none"}/><span>{saved ? "Đã lưu" : "Lưu"}</span></button><a className="trend-original" href={video.videoUrl} target="_blank" rel="noreferrer" aria-label="Mở video trên YouTube"><ExternalLink size={20}/></a></div>
                 </article>;
               })}</div>
@@ -2701,7 +2824,7 @@ function App() {
           </section>
         </div>
       )}
-      {showInstallHelp && <div className="modal-backdrop install-backdrop" role="dialog" aria-modal="true" aria-labelledby="install-title"><section className="install-card"><button className="close-install" onClick={() => setShowInstallHelp(false)} aria-label="Đóng"><X size={18}/></button><img className="brand-logo-image" src="/icon.svg" alt=""/><h2 id="install-title">Cài Nấu Đại Đi lên màn hình chính</h2>{!window.isSecureContext ? <><p>Để cài như ứng dụng, trang cần HTTPS. Hãy mở lại đường dẫn QR sau khi triển khai Nấu Đại Đi lên Vercel.</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></> : isIOSDevice() ? <><p>Mở trang này bằng Safari, chạm <b>Chia sẻ</b>, chọn <b>Thêm vào Màn hình chính</b>, rồi chạm <b>Thêm</b>.</p><p>iPhone/iPad yêu cầu bạn xác nhận các bước này; website không thể tự thêm biểu tượng thay bạn.</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></> : installPrompt ? <><p>Chạm bên dưới để mở hộp thoại cài đặt của trình duyệt. Xác nhận thêm một lần trong hộp thoại để Nấu Đại Đi xuất hiện trên màn hình chính.</p><button className="qr-link install-action" onClick={async () => { const prompt = installPrompt; await prompt.prompt(); const choice = await prompt.userChoice; setInstallPrompt(null); if (choice.outcome === "accepted") setShowInstallHelp(false); }}><Download size={17}/> Cài Nấu Đại Đi</button></> : !installCheckComplete ? <><p>Đang kiểm tra xem trình duyệt có thể cài Nấu Đại Đi trực tiếp không…</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></> : <><p>Nếu trình duyệt hỗ trợ cài PWA, lựa chọn cài đặt sẽ xuất hiện trong menu trình duyệt.</p><p><b>Android/Chrome:</b> mở menu ⋮ rồi chọn <b>Cài đặt ứng dụng</b> hoặc <b>Thêm vào màn hình chính</b>.</p><p><b>iPhone/iPad:</b> dùng Safari, chạm <b>Chia sẻ → Thêm vào Màn hình chính → Thêm</b>.</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></>}</section></div>}
+      {showInstallHelp && <div className="modal-backdrop install-backdrop" role="dialog" aria-modal="true" aria-labelledby="install-title"><section className="install-card"><button className="close-install" onClick={() => setShowInstallHelp(false)} aria-label="Đóng"><X size={18}/></button><img className="brand-logo-image" src="/icon.svg" alt=""/><h2 id="install-title">Cài Nấu Đại Đi lên màn hình chính</h2><div className="install-instructions">{!window.isSecureContext ? <><p>Để cài như ứng dụng, trang cần HTTPS. Hãy mở lại đường dẫn QR sau khi triển khai Nấu Đại Đi lên Vercel.</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></> : isIOSDevice() ? <><p>Mở trang này bằng Safari, chạm <b>Chia sẻ</b>, chọn <b>Thêm vào Màn hình chính</b>, rồi chạm <b>Thêm</b>.</p><p>iPhone/iPad yêu cầu bạn xác nhận các bước này; website không thể tự thêm biểu tượng thay bạn.</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></> : installPrompt ? <><p>Chạm bên dưới để mở hộp thoại cài đặt của trình duyệt. Xác nhận thêm một lần trong hộp thoại để Nấu Đại Đi xuất hiện trên màn hình chính.</p><button className="qr-link install-action" onClick={async () => { const prompt = installPrompt; await prompt.prompt(); const choice = await prompt.userChoice; setInstallPrompt(null); if (choice.outcome === "accepted") setShowInstallHelp(false); }}><Download size={17}/> Cài Nấu Đại Đi</button></> : <><p>Nếu trình duyệt hỗ trợ cài PWA, lựa chọn cài đặt sẽ xuất hiện trong menu trình duyệt.</p><p><b>Android/Chrome:</b> mở menu ⋮ rồi chọn <b>Cài đặt ứng dụng</b> hoặc <b>Thêm vào màn hình chính</b>.</p><p><b>iPhone/iPad:</b> dùng Safari, chạm <b>Chia sẻ → Thêm vào Màn hình chính → Thêm</b>.</p><button className="qr-link" onClick={() => setShowInstallHelp(false)}>Tiếp tục vào web</button></>}</div></section></div>}
     </div>
   );
 }

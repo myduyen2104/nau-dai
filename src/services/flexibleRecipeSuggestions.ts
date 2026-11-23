@@ -25,7 +25,7 @@ type PantryFood = {
   normalized: string;
   category?: Ingredient["category"];
   emoji: string;
-  kind: "protein" | "vegetable" | "other";
+  kind: "protein" | "vegetable" | "starch" | "other";
   preCooked: boolean;
   dumpling: boolean;
   springRoll: boolean;
@@ -57,9 +57,10 @@ function describeStock(stock: FlexibleStockItem, catalog: Ingredient[]): PantryF
   const protein = !seasoning && (preCooked || dumpling || springRoll || tofu || ["Thịt", "Hải sản", "Trứng"].includes(ingredient?.category ?? ""));
   const vegetable = !seasoning && ingredient?.category === "Rau củ"
     && !unsuitableGenericVegetables.some((term) => normalized.includes(term));
+  const starch = !seasoning && ingredient?.category === "Tinh bột";
   return {
     stock, name, normalized, category: ingredient?.category, emoji: ingredient?.emoji ?? (protein ? "🥢" : "🥬"),
-    kind: protein ? "protein" : vegetable ? "vegetable" : "other", preCooked, dumpling, springRoll, known: !!ingredient,
+    kind: protein ? "protein" : vegetable ? "vegetable" : starch ? "starch" : "other", preCooked, dumpling, springRoll, known: !!ingredient,
   };
 }
 
@@ -77,27 +78,11 @@ function safeForPreferences(food: PantryFood, preferences: FlexiblePreferences):
   return true;
 }
 
-function chooseStirFryVegetables(vegetables: PantryFood[], limit: number): PantryFood[] {
-  const sprouts = vegetables.find((food) => food.stock.id === "bean-sprout" || food.normalized.includes("gia do"));
-  if (!sprouts) return vegetables.slice(0, limit);
-
-  // Pair bean sprouts with familiar market vegetables, then add sprouts last
-  // in the generated name and cooking steps so they stay crisp.
-  const priority = ["cai thia", "rau cai", "bap cai", "nam", "ca rot", "rau muong", "bong cai", "dau que", "rau lang", "cai xoan", "sup lo"];
-  const companions = vegetables.filter((food) => food !== sprouts).sort((a, b) => {
-    const rank = (food: PantryFood) => {
-      const index = priority.findIndex((term) => food.normalized.includes(term));
-      return index < 0 ? priority.length : index;
-    };
-    return rank(a) - rank(b) || vegetables.indexOf(a) - vegetables.indexOf(b);
-  });
-  return [...companions.slice(0, Math.max(0, limit - 1)), sprouts].slice(0, limit);
-}
-
-function recipeFromFoods(foods: PantryFood[], method: "xào" | "canh"): Recipe {
+function recipeFromFoods(foods: PantryFood[], method: "xào" | "canh" | "chiên"): Recipe {
   const proteins = foods.filter((food) => food.kind === "protein");
   const vegetables = foods.filter((food) => food.kind === "vegetable");
   const main = proteins[0];
+  const starch = foods.find((food) => food.kind === "starch");
   const vegNames = vegetables.map((food) => food.name);
   const quickVegetables = vegetables.filter((food) => /gia|rau|cai|xa lach|nam|ca chua/.test(food.normalized));
   const firmVegetables = vegetables.filter((food) => !quickVegetables.includes(food));
@@ -110,11 +95,20 @@ function recipeFromFoods(foods: PantryFood[], method: "xào" | "canh"): Recipe {
   const joinedVegNames = loweredVegNames.length > 1
     ? `${loweredVegNames.slice(0, -1).join(", ")} và ${loweredVegNames[loweredVegNames.length - 1]}`
     : loweredVegNames[0] ?? "rau củ";
-  const name = vegetables.length === 0 && proteins.length > 1
-    ? `${proteins.map((food) => food.name).join(" và ")} xào nóng`
-    : main
-    ? `${joinedVegNames} ${method} ${main.name.toLocaleLowerCase("vi")}`
-    : method === "xào" ? `${joinedVegNames} xào` : `Canh ${joinedVegNames}`;
+  const tofu = proteins.find((food) => food.stock.id === "tofu");
+  const cookedProtein = proteins.find((food) => food !== tofu && food.preCooked && !food.springRoll && !food.dumpling);
+  const springRollOnly = proteins.length === 1 && proteins[0].springRoll && vegetables.length === 0 && !starch;
+  const name = springRollOnly
+    ? "Chả giò chiên giòn, ăn kèm nước chấm"
+    : starch?.stock.id === "rice"
+    ? `Cơm chiên${main ? ` ${main.name.toLocaleLowerCase("vi")}` : ""}${vegetables.length ? ` với ${vegNames.join(" và ").toLocaleLowerCase("vi")}` : ""}`
+    : vegetables.length === 0 && proteins.length > 1
+    ? cookedProtein && tofu
+      ? `${cookedProtein.name} áp chảo cùng ${tofu.name.toLocaleLowerCase("vi")}`
+      : proteins.map((food) => food.name).join(" và ") + " làm nóng"
+    : method === "canh"
+        ? main ? `Canh ${joinedVegNames.toLocaleLowerCase("vi")} với ${main.name.toLocaleLowerCase("vi")}` : `Canh ${joinedVegNames.toLocaleLowerCase("vi")}`
+        : main ? `${joinedVegNames} xào ${main.name.toLocaleLowerCase("vi")}` : `${joinedVegNames} xào`;
   const ingredients = foods.map((food) => {
     const amount = food.stock.quantity !== undefined && food.stock.quantity !== null && String(food.stock.quantity).trim()
       ? `${food.stock.quantity} ${food.stock.unit ?? ""} · lượng bạn đang có`.trim()
@@ -129,10 +123,28 @@ function recipeFromFoods(foods: PantryFood[], method: "xào" | "canh"): Recipe {
       role: food.kind === "protein" ? "main" as const : "required" as const,
     };
   });
-  const steps = method === "xào"
+  const steps = springRollOnly && main
+    ? [
+      `Kiểm tra bao bì ${main.name}: nếu còn đông lạnh, làm theo hướng dẫn chiên của nhà sản xuất và không rã đông trước trừ khi bao bì yêu cầu. Nhân chả giò thường đã nêm, không cần nêm thêm vào cuốn.`,
+      `Chọn một cách chiên: chiên ngập dầu nóng khoảng 170–175°C đến khi vỏ vàng giòn và nhân nóng chín; hoặc quét/xịt một lớp dầu mỏng rồi dùng nồi chiên không dầu theo nhiệt độ, thời gian trên bao bì, lật giữa chừng.`,
+      "Gắp ra để trên rack hoặc giấy thấm dầu 2–3 phút để vỏ giữ độ giòn.",
+      "Pha nước chấm nếu có: khuấy 1 phần nước mắm, 1 phần đường, 2 phần nước ấm và 1 phần nước cốt chanh hoặc giấm; thêm tỏi, ớt tùy thích. Nếm rồi chỉnh chua, ngọt, mặn theo khẩu vị.",
+    ]
+    : starch?.stock.id === "rice"
+    ? [
+      "Dùng cơm đã nấu chín, để nguội và tách tơi hạt. Nếu đang có gạo sống, nấu chín trước rồi mới chiên.",
+      ...(main ? [main.preCooked || main.category === "Đậu & hạt"
+        ? `Áp chảo ${main.name} cho nóng và thơm; gắp ra để riêng.`
+        : `Xào ${main.name} trước đến khi chín hoàn toàn; gắp ra để riêng.`] : []),
+      ...(vegetables.length ? [`Cho ${vegNames.join(", ")} vào chảo, xào vừa chín; nếu có giá đỗ, cho vào sau cùng.`] : []),
+      "Cho cơm vào đảo tơi trên lửa vừa; thêm nguyên liệu đã gắp ra, nêm từng ít gia vị nếu đang có rồi đảo nóng đều.",
+    ]
+    : method === "xào"
     ? [
       vegetables.length === 0
-        ? "Nếu há cảo hoặc chả giò còn đông lạnh/chưa chín, làm chín theo hướng dẫn trên bao bì trước. Không ăn khi nhân còn lạnh hoặc chưa chín."
+        ? proteins.some((food) => food.dumpling || food.springRoll)
+          ? `Nếu ${proteins.filter((food) => food.dumpling || food.springRoll).map((food) => food.name).join(", ")} còn đông lạnh hoặc chưa chín, làm chín theo hướng dẫn trên bao bì trước.`
+          : `Lau khô nguyên liệu. Cắt ${proteins.map((food) => food.name).join(" và ")} thành miếng vừa ăn nếu cần.`
         : main?.category === "Trứng"
         ? `Rửa và để ráo ${vegNames.join(", ")}, cắt vừa ăn rồi đánh tan trứng.`
         : `${vegNames.map((name) => /giá/i.test(name) ? `Rửa và để ráo ${name}` : `Rửa và cắt ${name} vừa ăn`).join(". ")}.${main ? ` Thái ${main.name} mỏng hoặc vừa miếng.` : ""}`,
@@ -144,9 +156,15 @@ function recipeFromFoods(foods: PantryFood[], method: "xào" | "canh"): Recipe {
           : main.springRoll
             ? `Nếu ${main.name} đã chiên chín, hâm riêng rồi để vào sau cùng; nếu còn sống hoặc đông lạnh, làm chín theo hướng dẫn trên bao bì.`
         : main.preCooked || main.category === "Đậu & hạt"
-          ? `Cho ${main.name} vào đảo nóng. Nếu đây là cá viên chưa chiên hoặc còn đông lạnh, nấu theo hướng dẫn trên bao bì đến khi chín nóng hoàn toàn.`
+          ? `Cho ${main.name} vào đảo nóng đến khi nóng đều${main.preCooked ? "; nếu nhãn bao bì yêu cầu nấu chín, làm theo hướng dẫn đó" : ""}.`
           : `Cho ${main.name} vào xào trước đến khi chín hoàn toàn; thịt và hải sản sống không được để tái.`] : []),
-      ...(vegetables.length ? [sauteVegetableStep] : proteins.length > 1 ? [`Cho ${proteins.slice(1).map((food) => food.name).join(", ")} vào sau, đảo nhẹ đến khi nóng đều; nếu là há cảo đông lạnh/chưa chín thì làm chín theo bao bì trước.`] : []),
+      ...(vegetables.length
+        ? [sauteVegetableStep]
+        : proteins.length > 1
+          ? proteins.slice(1).map((food) => food.dumpling || food.springRoll
+            ? `Làm chín ${food.name} theo hướng dẫn trên bao bì trước, rồi cho vào sau cùng.`
+            : `Cho ${food.name} vào sau, đảo nhẹ đến khi nóng đều.`)
+          : []),
       main?.category === "Trứng"
         ? "Nêm từng ít nước mắm, nước tương hoặc muối nếu đang có; cho trứng đã xào trở lại chảo, đảo đều rồi nếm lại. Gia vị không nằm trong tủ có thể bỏ qua."
         : "Nêm từng ít nước mắm, nước tương hoặc muối nếu đang có; nếm lại rồi tắt bếp. Gia vị không nằm trong tủ có thể bỏ qua.",
@@ -166,23 +184,31 @@ function recipeFromFoods(foods: PantryFood[], method: "xào" | "canh"): Recipe {
     id: `flexible-${foods.map((food) => normalize(food.stock.id)).join("-")}-${method}`,
     slug: `flexible-${foods.map((food) => normalize(food.stock.id)).join("-")}-${method}`,
     name,
-    emoji: method === "xào" ? "🍳" : "🥣",
+    emoji: method === "canh" ? "🥣" : method === "chiên" ? "🥟" : "🍳",
     description: `Gợi ý tự phối từ ${foods.map((food) => food.name).join(", ")} đang có trong tủ.`,
-    category: method === "xào" ? "Món xào" : "Món canh",
+    category: springRollOnly
+      ? "Món chiên"
+      : starch?.stock.id === "rice"
+      ? "Món cơm"
+      : vegetables.length === 0 && proteins.some((food) => food.springRoll || food.dumpling)
+      ? "Món ăn nhẹ"
+      : method === "xào" ? "Món xào" : "Món canh",
     cuisine: "vietnamese",
     method,
-    minutes: method === "xào" ? 15 : 25,
+    minutes: method === "canh" ? 25 : method === "chiên" ? 20 : 15,
     preparationTime: null,
     cookingTime: null,
-    totalTime: method === "xào" ? 15 : 25,
+    totalTime: method === "canh" ? 25 : method === "chiên" ? 20 : 15,
     difficulty: "Linh hoạt",
     servings: null,
     required: ingredients.map((item) => item.ingredientId),
     optional: [],
     ingredients,
     steps: steps.map((instruction, index) => ({ order: index + 1, instruction })),
-    equipment: [method === "xào" ? "Chảo" : "Nồi"],
-    tips: ["Đây là gợi ý tự phối, chưa phải công thức nguồn hay món đã thử nghiệm. Nêm từ ít rồi nếm lại; không cần dùng đủ mọi gia vị."],
+    equipment: springRollOnly ? ["Chảo sâu lòng hoặc nồi chiên không dầu"] : [method === "xào" ? "Chảo" : "Nồi"],
+    tips: [springRollOnly
+      ? "Chả giò bán sẵn thường đã nêm nhân; đừng nêm thêm vào cuốn. Ưu tiên thời gian và nhiệt độ trên bao bì, nhất là với chả giò đông lạnh."
+      : "Đây là gợi ý tự phối, chưa phải công thức nguồn hay món đã thử nghiệm. Nêm từ ít rồi nếm lại; không cần dùng đủ mọi gia vị."],
     tags: ["Gợi ý linh hoạt", method],
     source: { type: "internal", title: "Gợi ý linh hoạt từ tủ lạnh · tự biên soạn, chưa thử nghiệm" },
     verificationStatus: "adapted",
@@ -198,24 +224,105 @@ export function suggestFlexibleRecipes(
   const foods = stock.map((item) => describeStock(item, catalog)).filter((food) => food.kind !== "other" && safeForPreferences(food, preferences));
   const proteins = foods.filter((food) => food.kind === "protein");
   const vegetables = foods.filter((food) => food.kind === "vegetable");
-  const stirFryVegetables = chooseStirFryVegetables(vegetables, 3);
+  const rice = foods.find((food) => food.stock.id === "rice");
   const suggestions: Recipe[] = [];
-  const add = (items: PantryFood[], method: "xào" | "canh") => {
+  const maxSuggestions = 10;
+  const recipeKeys = new Set<string>();
+  const vegetableKeys = new Set<string>();
+  const add = (items: PantryFood[], method: "xào" | "canh" | "chiên") => {
+    if (!items.length || items.length > 3 || suggestions.length >= maxSuggestions) return;
+    const ingredientKey = items.map((food) => food.stock.id).sort().join("+");
+    const vegetableKey = items.filter((food) => food.kind === "vegetable").map((food) => food.stock.id).sort().join("+");
+    if (recipeKeys.has(ingredientKey) || (vegetableKey && vegetableKeys.has(vegetableKey))) return;
     const recipe = recipeFromFoods(items, method);
-    if (!suggestions.some((entry) => entry.id === recipe.id)) suggestions.push(recipe);
+    suggestions.push(recipe);
+    recipeKeys.add(ingredientKey);
+    if (vegetableKey) vegetableKeys.add(vegetableKey);
   };
+  const isSoupVegetable = (food: PantryFood) => ["pumpkin", "winter-melon", "luffa", "bottle-gourd"].includes(food.stock.id);
+  const vegetablePairs: PantryFood[][] = [];
+  for (let first = 0; first < vegetables.length; first += 1) {
+    for (let second = first + 1; second < vegetables.length; second += 1) {
+      const pair = [vegetables[first], vegetables[second]];
+      if (!pair.some(isSoupVegetable)) vegetablePairs.push(pair);
+    }
+  }
+  const pairScore = (pair: PantryFood[]) => {
+    const ids = new Set(pair.map((food) => food.stock.id));
+    if (ids.has("bean-sprout") && ids.has("eggplant")) return 0;
+    if (ids.has("bean-sprout") && (ids.has("bok-choy") || ids.has("cabbage") || ids.has("spinach") || ids.has("water-spinach"))) return 1;
+    return 2;
+  };
+  vegetablePairs.sort((a, b) => pairScore(a) - pairScore(b));
 
-  for (const protein of proteins.slice(0, 2)) {
-    if (stirFryVegetables.length) add([protein, ...stirFryVegetables], "xào");
+  // Start with a simple vegetable dish so the list does not repeat one base
+  // recipe while merely swapping the meat or sausage.
+  vegetablePairs.slice(0, 3).forEach((pair) => add(pair, "xào"));
+
+  const tofu = proteins.find((food) => food.stock.id === "tofu");
+  const preparedMeats = proteins.filter((food) => food.preCooked && !food.springRoll && !food.dumpling && food !== tofu);
+  const soupVegetables = vegetables.filter(isSoupVegetable);
+
+  // Soup suggestions use squash-like vegetables; tofu is paired with pumpkin
+  // when available, instead of combining every vegetable in one pot.
+  for (const vegetable of soupVegetables) {
+    const protein = vegetable.stock.id === "pumpkin" && tofu
+      ? tofu
+      : proteins.find((food) => food !== vegetable && !food.springRoll && !food.dumpling);
+    add(protein ? [vegetable, protein] : [vegetable], "canh");
   }
-  // Give households a useful option when the fridge only has freezer staples,
-  // such as fried fish balls with dumplings, and no fresh vegetables.
-  const frozenPair = proteins.find((food) => food.dumpling || food.springRoll);
-  const readyPartner = proteins.find((food) => food !== frozenPair && (food.preCooked || food.dumpling || food.springRoll));
-  if (frozenPair && readyPartner) add([readyPartner, frozenPair], "xào");
-  if (!proteins.length && vegetables.length >= 2) add(chooseStirFryVegetables(vegetables, 4), "xào");
-  if (proteins.length && vegetables.length >= 2 && (proteins[0].preCooked || proteins[0].category === "Đậu & hạt")) {
-    add([proteins[0], ...chooseStirFryVegetables(vegetables, 3)], "canh");
+
+  // A prepared meat with tofu is a separate, compact dish idea.
+  if (tofu && preparedMeats.length) add([preparedMeats[0], tofu], "xào");
+
+  // Pair prepared proteins with one vegetable at a time, keeping the vegetable
+  // combination unique across the list and avoiding a second dish centered on
+  // a protein already used in another suggestion.
+  const stirFryPriority = ["eggplant", "bok-choy", "cabbage", "carrot", "green-beans", "water-spinach", "bean-sprout"];
+  const nonSoupVegetables = vegetables.filter((food) => !isSoupVegetable(food)).sort((a, b) => {
+    const rank = (food: PantryFood) => {
+      const index = stirFryPriority.indexOf(food.stock.id);
+      return index < 0 ? stirFryPriority.length : index;
+    };
+    return rank(a) - rank(b);
+  });
+  const proteinsAlreadySuggested = new Set(suggestions.flatMap((recipe) => recipe.ingredients.map((item) => item.ingredientId)).filter((id) => proteins.some((food) => food.stock.id === id)));
+  if (suggestions.length < 3) {
+    for (const protein of preparedMeats.filter((food) => !proteinsAlreadySuggested.has(food.stock.id))) {
+      for (const vegetable of nonSoupVegetables) {
+        const countBefore = suggestions.length;
+        add([protein, vegetable], "xào");
+        if (suggestions.length > countBefore) {
+          proteinsAlreadySuggested.add(protein.stock.id);
+          break;
+        }
+      }
+    }
   }
-  return suggestions.slice(0, 3);
+
+  // Rice makes a distinct, familiar meal idea instead of another version of
+  // the same stir-fried vegetables.
+  if (rice) {
+    const protein = preparedMeats.find((food) => !food.springRoll && !food.dumpling && !proteinsAlreadySuggested.has(food.stock.id))
+      ?? preparedMeats.find((food) => !food.springRoll && !food.dumpling);
+    const vegetable = vegetables.find((food) => food.stock.id === "bean-sprout") ?? vegetables.find((food) => !isSoupVegetable(food));
+    if (protein && vegetable) add([rice, protein, vegetable], "xào");
+    else if (protein) add([rice, protein], "xào");
+    else if (vegetable) add([rice, vegetable], "xào");
+  }
+
+  // Keep dumplings and spring rolls out of unrelated stir-fries. A spring roll
+  // suggestion is a complete crisp-frying dish with a practical dipping sauce.
+  if (suggestions.length < 5) {
+    for (const preparedSnack of proteins.filter((food) => food.springRoll || food.dumpling)) {
+      add([preparedSnack], preparedSnack.springRoll ? "chiên" : "xào");
+    }
+  }
+
+  // If the pantry supports more genuinely different combinations, add them
+  // one by one, never reusing the same vegetable set or ingredient set.
+  for (const pair of vegetablePairs) {
+    for (const protein of preparedMeats) add([protein, ...pair], "xào");
+  }
+  return suggestions.slice(0, maxSuggestions);
 }

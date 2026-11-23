@@ -1,13 +1,15 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { classifyCookingVideo, refreshYoutubeCatalog } from "./lib/youtube-trends.mjs";
+import { classifyCookingVideo, refreshYoutubeCatalog, selectYoutubeIdsForRefresh } from "./lib/youtube-trends.mjs";
 
 const output = new URL("../public/data/youtube/catalog.json", import.meta.url);
 const apiKey = process.env.YOUTUBE_API_KEY;
 const MAX_SEARCH_CALLS = 24;
 const MAX_RESULTS_PER_SEARCH = 25;
-const CATALOG_LIMIT = 800;
+// Publish a bounded daily snapshot. The next successful scheduled run replaces
+// this set with the current search results instead of growing an archive.
+const CATALOG_LIMIT = 200;
 const SEARCH_DAILY_LIMIT = 100;
 const newRecipeQueries = [
   { query: '"cách nấu" món Việt', tags: ["món Việt", "món chính"] },
@@ -133,7 +135,10 @@ try {
     }
   }
 
-  const allIds = [...new Set([...previousIds, ...candidateIds])];
+  // A repeat run on the same UTC day has no fresh search results due to the
+  // YouTube search quota guard, so refresh today's snapshot. On a new day,
+  // replace it using only IDs found by today's searches.
+  const allIds = selectYoutubeIdsForRefresh(previousIds, candidateIds, alreadySearchedToday);
   if (!allIds.length) throw new Error("YouTube không trả về video ID nào; catalog cũ được giữ nguyên.");
   const apiVideos = [];
   for (let start = 0; start < allIds.length; start += 50) {
@@ -146,6 +151,7 @@ try {
 
   const tags = new Map([...tagsByVideoId].map(([id, value]) => [id, [...value]]));
   const result = refreshYoutubeCatalog(previousCatalog, apiVideos, tags, new Date(), CATALOG_LIMIT);
+  if (!result.catalog.videos.length) throw new Error("Không tìm thấy video nấu ăn hợp lệ; catalog cũ được giữ nguyên.");
   result.catalog.searchQuotaDate = todayUtc;
   result.catalog.searchCallsToday = alreadySearchedToday ? priorSearchCallCount : searchCalls;
   const returnedIds = new Set(apiVideos.map((video) => video.id));

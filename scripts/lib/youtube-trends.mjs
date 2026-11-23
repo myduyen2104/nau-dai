@@ -32,6 +32,13 @@ export function videoDurationSeconds(isoDuration) {
   return Number(match[1] ?? 0) * 86400 + Number(match[2] ?? 0) * 3600 + Number(match[3] ?? 0) * 60 + Number(match[4] ?? 0);
 }
 
+/** Select a daily replacement set; repeat runs refresh the existing day's set. */
+export function selectYoutubeIdsForRefresh(previousIds, candidateIds, alreadySearchedToday) {
+  if (alreadySearchedToday) return [...previousIds];
+  const previous = new Set(previousIds);
+  return [...new Set(candidateIds)].filter((id) => !previous.has(id));
+}
+
 export function classifyCookingVideo(video) {
   const title = normalize(video?.snippet?.title ?? video?.title ?? "");
   const description = normalize(video?.snippet?.description ?? video?.description ?? "").slice(0, 1200);

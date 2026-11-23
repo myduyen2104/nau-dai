@@ -30,4 +30,8 @@ Local Vite app at `http://127.0.0.1:5173/?page=trending`. The catalog available 
 
 ## Blockers and limits
 
-The real catalog refresh and the 100-video scroll scenario remain unverified. The current test catalog has only 14 entries. Also, the catalog file is committed to Git; `no-store` HTTP headers and client-side freshness checks do not erase old metadata from Git history. A storage design with overwrite/expiry behavior is needed before claiming compliance with YouTube's metadata retention requirements. No deployment was made.
+At the time of this test, the real catalog refresh and the 100-video scroll scenario were unverified; the test fixture had 14 entries. The catalog file is committed to Git, so `no-store` HTTP headers and client-side freshness checks do not erase old metadata from Git history. Keep this limitation attached to the 2026-11-16 test rather than treating it as a current production measurement.
+
+## Production catalog check — 2026-11-23
+
+Read-only check of `https://naudaidi.vercel.app/data/youtube/catalog.json` returned HTTP 200. The catalog had `updatedAt: 2026-11-22T09:48:03.721Z` and 374 records: 239 `accepted` and 135 `needs_review`. This confirms the production data endpoint and snapshot count only; it does not retest every video, measure playback success, or repeat the 100-video scroll scenario. Vercel's deployment list showed production on commit `61b5e44` (`chore: refresh YouTube cooking video catalog`).

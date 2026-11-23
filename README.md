@@ -1,6 +1,12 @@
-# What's in My Fridge?
+# Nấu Đại Đi
 
-Ứng dụng React + TypeScript + Vite gợi ý món dựa trên nguyên liệu lưu cục bộ trong trình duyệt. Core app và dữ liệu công thức không cần backend hoặc API key.
+Nấu Đại Đi giúp bạn lưu nguyên liệu trong tủ lạnh, tìm món phù hợp và xem video nấu ăn. Tủ lạnh, danh sách mua sắm, lịch sử nấu và video đã xem được lưu trên thiết bị; app không cần tài khoản hay backend cho các tính năng này.
+
+**Mở app:** [naudaidi.vercel.app](https://naudaidi.vercel.app/)
+
+![Giao diện Nấu Đại Đi trên điện thoại](docs/screenshots/home-mobile.png)
+
+Ảnh chụp giao diện mobile 390 × 844, cập nhật ngày 23-11-2026.
 
 ## Chạy local
 
@@ -11,7 +17,7 @@ npm ci
 npm run dev
 ```
 
-## Kiểm tra dữ liệu và build
+## Build và kiểm tra
 
 ```bash
 npm test
@@ -19,46 +25,42 @@ npm run validate:recipes
 npm run build
 ```
 
-Các công thức hiện có được gắn nhãn nội bộ, chưa xác minh độc lập. Định lượng chưa có nguồn xác thực sẽ hiển thị là chưa có; không coi trạng thái “đủ nguyên liệu” là đủ số lượng.
+Các công thức tự phối được ghi nhãn chưa thử nghiệm; công thức thiếu định lượng nguồn không được xem là đã xác nhận đủ khẩu phần. Recipe QA trong [`docs/qa/`](docs/qa/) là các báo cáo có ngày, mô tả đúng phạm vi retest tại thời điểm lập báo cáo; chúng không tự cập nhật khi source đổi.
 
 ## Triển khai Vercel
 
-Import repository vào Vercel, chọn preset Vite hoặc dùng cấu hình trong `vercel.json`:
+Production hiện chạy tại [naudaidi.vercel.app](https://naudaidi.vercel.app/). Repository đã kết nối Vercel; mỗi commit mới trên `main` sẽ tạo deployment.
 
 - Build command: `npm run build`
 - Output directory: `dist`
-- Không cần environment variable để chạy tính năng tủ lạnh và gợi ý.
+- Cấu hình: [`vercel.json`](vercel.json)
+- App tủ lạnh và gợi ý món không cần API key hoặc biến môi trường.
 
-## Đồng bộ video YouTube (tùy chọn)
+## Video YouTube
 
-1. Tạo project trong Google Cloud Console và bật **YouTube Data API v3**.
-2. Tạo API key. Hạn chế key chỉ cho YouTube Data API v3; GitHub-hosted runner dùng IP thay đổi nên không giới hạn theo một IP cố định.
-3. Trong repository GitHub, vào **Settings → Secrets and variables → Actions**, tạo secret `YOUTUBE_API_KEY`.
-4. Mở **Actions → Update YouTube food videos → Run workflow** để chạy thử. Workflow sau đó chạy hằng ngày.
+Production catalog được kiểm tra ngày **23-11-2026**: có **374** bản ghi, gồm **239** được chấp nhận tự động và **135** cần review. Bản ghi cần review được đánh dấu trong feed; con số này có thể đổi sau lần đồng bộ tiếp theo. Người dùng có lịch sử xem riêng trên thiết bị; video chưa xem được xếp trước video đã xem.
 
-Key chỉ dùng trong GitHub Actions, không đặt trong biến `VITE_*` hay source frontend. Script chạy 8 truy vấn tìm kiếm (mỗi truy vấn dùng quota YouTube đáng kể) và lấy statistics cho kết quả; theo dõi quota dự án Google Cloud. Nếu thiếu key hoặc API lỗi, JSON hiện tại được giữ nguyên và app vẫn hoạt động. Nếu repository bật branch protection chặn bot push, đồng bộ sẽ thất bại an toàn; chạy script trong môi trường tin cậy, xem diff rồi gửi thay đổi qua quy trình PR của repository.
+GitHub Actions chạy workflow **Update YouTube food videos** hằng ngày lúc 09:17 giờ Việt Nam; có thể chạy thủ công bằng **Actions → Update YouTube food videos → Run workflow**. Khi catalog thay đổi, workflow commit file catalog; Vercel tự build lại từ commit đó.
 
-Google, GitHub và Vercel có quota/điều kiện gói miễn phí riêng; dịch vụ miễn phí không bảo đảm chi phí bằng 0 khi quota vượt mức hoặc điều khoản thay đổi.
+Thiết lập lần đầu:
 
-TikTok và Facebook không được tự động crawl. Có thể lưu link thủ công trong tab **Món hot**; link và ghi chú được lưu ở localStorage.
+1. Bật **YouTube Data API v3** trong Google Cloud project.
+2. Tạo API key và giới hạn key cho YouTube Data API v3.
+3. Thêm key vào GitHub repository secret tên `YOUTUBE_API_KEY` tại **Settings → Secrets and variables → Actions**.
 
-## Cập nhật công thức
+> Key chỉ được dùng ở GitHub Actions; không đưa vào `VITE_*` hoặc frontend. Workflow giới hạn tối đa 24 lệnh tìm kiếm `search.list` mỗi lần chạy. API key miễn phí vẫn chịu quota Google Cloud; theo dõi quota trong Cloud Console. Nếu thiếu key hoặc API lỗi, catalog hiện tại được giữ lại. Thông tin và lịch sử kiểm thử feed nằm trong [`docs/qa/evidence/videos/feed-smoke-test.md`](docs/qa/evidence/videos/feed-smoke-test.md).
 
-Thêm công thức và nguyên liệu trong `src/data.ts`. Công thức dùng ID nguyên liệu hiện có; chạy `npm run validate:recipes` để tìm ID trùng, trường thiếu, bước nấu trống và tham chiếu nguyên liệu không hợp lệ. Chỉ đánh dấu xác minh khi có quy trình kiểm chứng độc lập và nguồn phù hợp.
+TikTok và Facebook không được crawl tự động. Người dùng có thể lưu link video để xem sau từ ứng dụng.
 
-## Sao lưu
+## Dữ liệu ứng dụng
 
-Trong **Sở thích → Sao lưu dữ liệu trên thiết bị**, tải JSON để backup hoặc nhập lại trên trình duyệt khác. Import thay thế dữ liệu hiện tại sau xác nhận. Ứng dụng không đồng bộ dữ liệu cá nhân lên cloud; xóa dữ liệu trình duyệt có thể làm mất trạng thái nếu chưa tải backup.
+Tại source hiện tại có **37 công thức nội bộ** và **140 nguyên liệu** dùng cho tủ lạnh/gợi ý. Recommendation engine chạy trong trình duyệt. Ba công thức Copper trong thư viện Khám phá (Bánh xèo, Bún chả, Phở bò) được ghi attribution và license trong app; các món chỉ có tên/nguyên liệu được gắn nhãn tương ứng.
 
-## Kho dữ liệu và nguồn
+Tình trạng nguồn, giấy phép và lý do nhận/loại được ghi trong [`source-audit.json`](source-audit.json). Không coi trang công khai là giấy phép tái sử dụng. Hướng dẫn thêm công thức nằm trong [`src/data.ts`](src/data.ts); chạy `npm run validate:recipes` để kiểm tra ID và trường công thức.
 
-Tình trạng từng nguồn, giấy phép, cấu trúc dữ liệu và lý do chấp nhận/loại trừ được ghi trong [`source-audit.json`](./source-audit.json). Không tự coi trang công khai là giấy phép tái sử dụng. Nguồn chưa có điều khoản tái sử dụng rõ ràng được để ngoài app cho tới khi có quyền phù hợp.
+Recommendation engine ở [`src/services/recommendationEngine.ts`](src/services/recommendationEngine.ts) đối chiếu alias đã chuẩn hóa, xét hạn dùng/trạng thái hỏng, và hỗ trợ đánh dấu nguyên liệu trong ngăn đông. Dữ liệu tủ lạnh, sở thích, danh sách mua sắm và lịch sử video được lưu cục bộ; trong **Sở thích → Sao lưu dữ liệu trên thiết bị**, người dùng có thể tải hoặc nhập bản sao lưu JSON. Xóa dữ liệu trình duyệt có thể làm mất các dữ liệu này nếu chưa sao lưu.
 
-Hiện app có 41 công thức nội bộ chưa xác minh độc lập và 132 nguyên liệu dùng cho tủ lạnh/gợi ý. Recommendation engine chạy trong trình duyệt, không cần API. Công thức đủ loại nguyên liệu được ghi rõ là chưa xác nhận định lượng nếu nguồn không có số lượng; không coi đó là xác nhận đủ khẩu phần. Thư viện **Khám phá** còn có 3 mục món Việt từ Copper (Bánh xèo, Bún chả, Phở bò) theo CC BY 4.0, kèm attribution trong app. Các mục này chỉ có tên, danh sách nguyên liệu và thông tin tổng quan; không có định lượng hay cách làm nên app gắn nhãn “chỉ có nguyên liệu”. Trong 32 tên nguyên liệu nguồn, 23 tên khớp chính xác với catalog hiện có; các tên còn lại được giữ nguyên theo nguồn, không tự dịch hoặc đoán nguyên liệu tương đương.
-
-Recommendation engine ở `src/services/recommendationEngine.ts` chia món thành đủ loại nguyên liệu, thiếu ít, dùng sớm và khám phá. Alias được so khớp chính xác sau khi chuẩn hóa dấu; quan hệ nguyên liệu cha-con chỉ thay thế theo danh sách phương pháp nấu cho phép. Có thể đánh dấu từng món trong ngăn đông. “Không rã đông” lọc món có thành phần được gắn metadata cần rã đông, hoặc nguyên liệu thịt/hải sản đang đông lạnh cần rã đông trước khi chiên, xào, áp chảo hay nướng. Trạng thái đông lạnh là trường tùy chọn, nên dữ liệu localStorage và backup cũ vẫn đọc được. Số khẩu phần mong muốn được lưu cùng sở thích và chỉ dùng scale lượng khi công thức có định lượng và số khẩu phần gốc.
-
-Để cập nhật lại nguồn Copper đã được chấp thuận và tái tạo chỉ mục:
+## Cập nhật dữ liệu Copper
 
 ```bash
 npm run import:recipes
@@ -68,12 +70,7 @@ npm run dedupe:recipes
 npm run validate:dataset
 npm run index:recipes
 npm run report:dataset
-```
-
-Các bước kiểm toán nguồn:
-
-```bash
 npm run audit:sources
 ```
 
-Dữ liệu tải về chỉ được nhập khi script kiểm tra thấy license, attribution và schema đúng như dự kiến; nếu không, script dừng và không ghi đè dữ liệu hiện có. Chỉ mục/ báo cáo được sinh cục bộ để phục vụ phát triển, không làm thay đổi API app.
+Script kiểm tra license, attribution và schema trước khi ghi dữ liệu; nếu kiểm tra không đạt, script dừng thay vì ghi đè dữ liệu hiện tại.

@@ -1,9 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 
 const dependencyDir = await mkdtemp(join(tmpdir(), "nau-dai-python-build-"));
+const requirements = await readFile("requirements-build.txt", "utf8");
+const requiredPillowVersion = requirements.match(/^Pillow==([^\s]+)/m)?.[1];
+const systemPillow = spawnSync("python3", ["-c", "import PIL; print(PIL.__version__)"], { encoding: "utf8" });
+const systemPillowMatches = systemPillow.status === 0 && systemPillow.stdout.trim() === requiredPillowVersion;
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { stdio: "inherit", ...options });
@@ -12,12 +16,14 @@ function run(command, args, options = {}) {
 }
 
 try {
-  run("python3", [
-    "-m", "pip", "install", "--disable-pip-version-check", "--quiet",
-    "--target", dependencyDir, "-r", "requirements-build.txt",
-  ]);
+  if (!systemPillowMatches) {
+    run("python3", [
+      "-m", "pip", "install", "--disable-pip-version-check", "--quiet",
+      "--target", dependencyDir, "-r", "requirements-build.txt",
+    ]);
+  }
 
-  run("python3", ["scripts/build-optimized-source-images.py"], {
+  run("python3", ["scripts/build-optimized-source-images.py"], systemPillowMatches ? {} : {
     env: {
       ...process.env,
       PYTHONPATH: [dependencyDir, process.env.PYTHONPATH].filter(Boolean).join(delimiter),

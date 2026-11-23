@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
-import { refreshYoutubeCatalog, classifyCookingVideo, videoDurationSeconds } from "../scripts/lib/youtube-trends.mjs";
+import { refreshYoutubeCatalog, classifyCookingVideo, selectYoutubeIdsForRefresh, videoDurationSeconds } from "../scripts/lib/youtube-trends.mjs";
 import { freshYoutubeCatalogVideos, inferYoutubeFeedInterests, rankYoutubeFeed, type YouTubeCatalogVideo, type VideoWatchRecord } from "../src/services/youtubeFeed.ts";
 
 const now = new Date("2026-11-16T00:00:00.000Z");
@@ -50,6 +50,23 @@ test("refresh catalog deduplicates by video ID, validates embeddability, and upd
   assert.equal(result.unavailableCount, 1);
 });
 
+test("daily YouTube refresh replaces yesterday's set with up to 200 new IDs and repeat runs retain today's set", () => {
+  const yesterday = new Set(["old-1", "old-2"]);
+  const searchResults = ["old-1", "new-1", "new-2", "new-1"];
+  assert.deepEqual(selectYoutubeIdsForRefresh(yesterday, searchResults, false), ["new-1", "new-2"]);
+  assert.deepEqual(selectYoutubeIdsForRefresh(yesterday, searchResults, true), ["old-1", "old-2"]);
+
+  const candidates = Array.from({ length: 205 }, (_, index) => ({
+    id: `new-${index}`,
+    snippet: { title: `Cách nấu món ${index}`, description: "Cách nấu từng bước", publishedAt: now.toISOString() },
+    status: { privacyStatus: "public", embeddable: true },
+    contentDetails: { duration: "PT5M" },
+  }));
+  const snapshot = refreshYoutubeCatalog({ videos: [{ videoId: "yesterday" }] }, candidates, new Map(), now, 200);
+  assert.equal(snapshot.catalog.videos.length, 200);
+  assert.ok(snapshot.catalog.videos.every((item) => item.videoId !== "yesterday"));
+});
+
 test("duration parser handles common YouTube ISO durations", () => {
   assert.equal(videoDurationSeconds("PT15M33S"), 933);
   assert.equal(videoDurationSeconds("PT1H2M3S"), 3723);
@@ -67,6 +84,18 @@ test("feed sessions are stable within a seed, different across seeds, unique, an
   assert.notDeepEqual(first.map((item) => item.videoId), nextSession.map((item) => item.videoId));
   assert.equal(new Set(first.map((item) => item.videoId)).size, videos.length);
   assert.ok(first.findIndex((item) => item.videoId === "v0") > 0);
+});
+
+test("feed puts every previously started video after clips the user has not watched", () => {
+  const videos = Array.from({ length: 12 }, (_, index) => video(`resume-${index}`, { creatorName: `Kênh ${index}` }));
+  const history: VideoWatchRecord[] = videos.slice(0, 4).map((item, index) => ({
+    videoId: item.videoId,
+    startedAt: new Date(now.valueOf() + index * 1000).toISOString(),
+    watchedSeconds: 1,
+  }));
+  const ranked = rankYoutubeFeed(videos, history, 404, [], now.valueOf());
+  assert.deepEqual(ranked.slice(0, 8).map((item) => item.videoId).sort(), videos.slice(4).map((item) => item.videoId).sort());
+  assert.deepEqual(ranked.slice(8).map((item) => item.videoId).sort(), videos.slice(0, 4).map((item) => item.videoId).sort());
 });
 
 test("catalog ignores unavailable, rejected, and metadata older than 30 days", () => {

@@ -86,7 +86,7 @@ export function inferYoutubeFeedInterests(
   return [...tagWeights.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "vi")).slice(0, 8).map(([tag]) => tag);
 }
 
-/** Weighted per-session feed ranking: unseen (40%), freshness (25%), interests (20%), exploration (15%). */
+/** Keeps all not-yet-started clips ahead of watched clips, then ranks within each group. */
 export function rankYoutubeFeed(
   videos: YouTubeCatalogVideo[],
   history: VideoWatchRecord[],
@@ -110,6 +110,7 @@ export function rankYoutubeFeed(
         : 0.5;
       return {
         video,
+        watched,
         baseScore: 0.4 * Number(!watched) + 0.25 * freshness + 0.2 * interest + 0.15 * random(),
         lastSeen: Date.parse(record?.lastSeenAt ?? "") || 0,
       };
@@ -120,8 +121,11 @@ export function rankYoutubeFeed(
   while (pool.length) {
     let bestIndex = 0;
     let bestScore = -Infinity;
+    const hasUnseenVideos = pool.some((candidate) => !candidate.watched);
     for (let index = 0; index < pool.length; index++) {
       const candidate = pool[index];
+      // Do not replay a started clip while any unseen clip remains in the feed.
+      if (hasUnseenVideos && candidate.watched) continue;
       const channel = candidate.video.creatorName ?? candidate.video.channelId ?? candidate.video.videoId;
       const repeatPenalty = recentChannels.includes(channel) ? 0.22 : 0;
       const recentlySeenPenalty = candidate.lastSeen && now - candidate.lastSeen < 7 * 86_400_000 ? 0.15 : 0;
