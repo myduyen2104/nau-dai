@@ -2,7 +2,7 @@ name: Update YouTube food videos
 
 on:
   schedule:
-    - cron: "17 2 * * *"
+    - cron: "0 2 * * *" # 02:00 UTC = 09:00 Vietnam time (UTC+7)
   workflow_dispatch:
 
 permissions:
