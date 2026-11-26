@@ -35,9 +35,9 @@ const currentInternalRecipeIds = [
   "beef-tomato", "bread-egg", "cabbage-egg", "cabbage-soup", "carrot-egg", "carrot-salad", "chicken-carrot",
   "chicken-soup", "coconut-pumpkin", "corn-egg", "cucumber-salad", "egg-steam", "fish-boil", "fried-rice",
   "garlic-greens", "garlic-noodle", "glass-noodle-soup", "glass-noodle-stir", "mushroom-egg", "noodle-egg",
-  "oatmeal-banana", "pasta-tomato", "peanut-noodle", "pork-cabbage", "potato-egg", "potato-mash", "potato-soup",
-  "pumpkin-soup", "shrimp-greens", "shrimp-noodle", "shrimp-tomato", "tofu-boil", "tofu-greens", "tofu-tomato",
-  "tomato-egg", "tomato-soup", "yogurt-banana",
+  "air-fryer-honey-chicken-feet", "air-fryer-lemon-butter-salmon", "air-fryer-sweet-potato-cheese-sticks", "pasta-tomato", "peanut-noodle", "pork-cabbage", "potato-egg", "potato-mash", "potato-soup",
+  "pumpkin-soup", "shrimp-greens", "shrimp-noodle", "shrimp-tomato", "tofu-greens", "tofu-tomato",
+  "rice-cooker-cheese-flan", "rice-cooker-hainanese-chicken-rice", "rice-cooker-yogurt-sponge", "tomato-egg", "tomato-soup",
 ];
 const deliberatelyRemovedRecipeIds = ["egg-boil", "boiled-corn", "sweet-potato", "carrot-boil"];
 

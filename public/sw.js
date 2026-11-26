@@ -1,4 +1,4 @@
-const CACHE = "fresh-shell-v13";
+const CACHE = "fresh-shell-v14";
 const SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -21,7 +21,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 self.addEventListener("activate", (event) => {
-  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))));
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith("fresh-shell-") && key !== CACHE).map((key) => caches.delete(key)))));
   self.clients.claim();
 });
 self.addEventListener("notificationclick", (event) => {
@@ -90,5 +90,5 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
     if (response.ok) caches.open(CACHE).then((cache) => cache.put(event.request, response.clone()));
     return response;
-  }).catch(() => caches.match("/"))));
+  }).catch(() => Response.error())));
 });

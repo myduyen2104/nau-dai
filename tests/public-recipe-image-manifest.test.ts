@@ -27,6 +27,6 @@ test("service worker refreshes manifest online and serves cached copy offline", 
 
 test("image manifest fetch failure is caught so UI keeps its emoji fallback", () => {
   assert.match(app, /fetch\(["']\/data\/recipe-image-manifest\.json["']\)/);
-  assert.match(app, /\.catch\(\(\)\s*=>\s*\{\s*recipeImagesReady\s*=\s*true;\s*\}\)/);
+  assert.match(app, /fetch\(["']\/data\/recipe-image-manifest\.json["']\)[\s\S]*?\.catch\(\(\)\s*=>\s*\{\s*\}\)/);
   assert.match(app, /recipeImages\.get\(`\$\{source\}\|\$\{keyId\}`\)/);
 });

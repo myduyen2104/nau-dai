@@ -6,76 +6,89 @@
     "cabbage-egg",
     "bread-egg",
     "fried-rice",
-    "glass-noodle-stir",
-    "mushroom-egg",
     "potato-egg",
     "tomato-soup",
     "egg-steam",
-    "corn-egg"
+    "corn-egg",
+    "shrimp-noodle",
+    "rice-cooker-cheese-flan",
+    "rice-cooker-yogurt-sponge",
+    "air-fryer-sweet-potato-cheese-sticks"
   ],
   "carrot": [
     "carrot-egg",
     "chicken-carrot",
     "potato-soup",
-    "fried-rice",
     "glass-noodle-stir",
     "glass-noodle-soup",
     "carrot-salad",
+    "peanut-noodle",
+    "pasta-tomato",
     "chicken-soup"
   ],
   "oil": [
     "carrot-egg",
     "tomato-egg",
+    "noodle-egg",
+    "tofu-tomato",
     "garlic-greens",
     "cabbage-egg",
     "chicken-carrot",
     "pork-cabbage",
     "beef-tomato",
     "shrimp-greens",
+    "pumpkin-soup",
+    "potato-soup",
     "bread-egg",
     "fried-rice",
     "garlic-noodle",
     "glass-noodle-stir",
+    "carrot-salad",
     "mushroom-egg",
     "tofu-greens",
+    "shrimp-tomato",
     "potato-egg",
+    "tomato-soup",
+    "coconut-pumpkin",
+    "cabbage-soup",
     "corn-egg",
-    "pasta-tomato"
+    "pasta-tomato",
+    "shrimp-noodle",
+    "rice-cooker-yogurt-sponge",
+    "air-fryer-honey-chicken-feet"
   ],
-  "scallion": [
+  "fish-sauce": [
     "carrot-egg",
     "tomato-egg",
     "noodle-egg",
-    "tofu-tomato",
     "cabbage-egg",
+    "pork-cabbage",
     "beef-tomato",
-    "pumpkin-soup",
-    "potato-soup",
     "fried-rice",
-    "glass-noodle-stir",
-    "glass-noodle-soup",
     "mushroom-egg",
-    "fish-boil",
-    "potato-egg",
     "tomato-soup",
-    "tofu-boil",
     "cabbage-soup",
-    "egg-steam",
-    "corn-egg",
-    "shrimp-noodle"
+    "chicken-soup"
   ],
   "salt": [
     "carrot-egg",
     "tomato-egg",
-    "noodle-egg",
+    "tofu-tomato",
     "garlic-greens",
     "cabbage-egg",
+    "chicken-carrot",
+    "pork-cabbage",
     "shrimp-greens",
     "pumpkin-soup",
     "potato-soup",
+    "bread-egg",
+    "cucumber-salad",
+    "fried-rice",
+    "garlic-noodle",
     "glass-noodle-soup",
+    "carrot-salad",
     "mushroom-egg",
-    "fish-boil",
+    "tofu-greens",
     "potato-egg",
     "tomato-soup",
     "coconut-pumpkin",
@@ -83,177 +96,420 @@
     "egg-steam",
     "potato-mash",
     "corn-egg",
+    "pasta-tomato",
     "chicken-soup",
-    "shrimp-noodle"
+    "rice-cooker-yogurt-sponge",
+    "air-fryer-honey-chicken-feet",
+    "air-fryer-lemon-butter-salmon",
+    "rice-cooker-hainanese-chicken-rice"
+  ],
+  "scallion": [
+    "carrot-egg",
+    "tomato-egg",
+    "noodle-egg",
+    "tofu-tomato",
+    "chicken-carrot",
+    "pork-cabbage",
+    "potato-soup",
+    "fried-rice",
+    "glass-noodle-soup",
+    "mushroom-egg",
+    "shrimp-tomato",
+    "fish-boil",
+    "potato-egg",
+    "tomato-soup",
+    "coconut-pumpkin",
+    "peanut-noodle",
+    "cabbage-soup",
+    "egg-steam",
+    "corn-egg",
+    "chicken-soup"
   ],
   "tomato": [
     "tomato-egg",
+    "noodle-egg",
     "tofu-tomato",
     "beef-tomato",
+    "shrimp-greens",
     "bread-egg",
     "shrimp-tomato",
     "tomato-soup",
     "pasta-tomato"
   ],
-  "sugar": [
+  "shallot": [
     "tomato-egg",
-    "tofu-tomato",
-    "cucumber-salad",
-    "carrot-salad",
-    "coconut-pumpkin"
+    "noodle-egg",
+    "chicken-carrot",
+    "pumpkin-soup",
+    "potato-soup",
+    "fried-rice",
+    "garlic-noodle",
+    "mushroom-egg",
+    "fish-boil",
+    "tomato-soup",
+    "cabbage-soup",
+    "pasta-tomato",
+    "chicken-soup",
+    "rice-cooker-hainanese-chicken-rice"
+  ],
+  "stock-cube": [
+    "tomato-egg",
+    "garlic-greens",
+    "chicken-carrot",
+    "pork-cabbage",
+    "shrimp-greens",
+    "pumpkin-soup",
+    "potato-soup",
+    "garlic-noodle",
+    "shrimp-tomato",
+    "fish-boil",
+    "tomato-soup"
   ],
   "noodle": [
     "noodle-egg",
     "garlic-noodle",
-    "peanut-noodle",
     "shrimp-noodle"
   ],
-  "spinach": [
+  "cilantro": [
     "noodle-egg",
-    "garlic-greens",
+    "chicken-carrot",
+    "pork-cabbage",
     "shrimp-greens",
+    "potato-soup",
+    "bread-egg",
+    "peanut-noodle"
+  ],
+  "soy-sauce": [
+    "noodle-egg",
+    "beef-tomato",
+    "bread-egg",
     "garlic-noodle",
+    "glass-noodle-stir",
+    "glass-noodle-soup",
     "tofu-greens",
-    "shrimp-noodle"
+    "fish-boil",
+    "peanut-noodle",
+    "egg-steam"
   ],
   "tofu": [
     "tofu-tomato",
-    "tofu-greens",
-    "tofu-boil"
+    "carrot-salad",
+    "tofu-greens"
   ],
-  "soy-sauce": [
+  "sugar": [
     "tofu-tomato",
-    "chicken-carrot",
-    "fried-rice",
-    "garlic-noodle",
+    "pork-cabbage",
+    "beef-tomato",
+    "shrimp-greens",
+    "cucumber-salad",
     "glass-noodle-stir",
-    "tofu-greens",
-    "tofu-boil",
-    "peanut-noodle"
+    "carrot-salad",
+    "fish-boil",
+    "coconut-pumpkin",
+    "cabbage-soup",
+    "corn-egg",
+    "pasta-tomato",
+    "rice-cooker-cheese-flan",
+    "rice-cooker-yogurt-sponge",
+    "air-fryer-lemon-butter-salmon",
+    "air-fryer-sweet-potato-cheese-sticks"
+  ],
+  "cai-ngot": [
+    "garlic-greens"
   ],
   "garlic": [
     "garlic-greens",
+    "cabbage-egg",
     "chicken-carrot",
     "pork-cabbage",
     "beef-tomato",
     "shrimp-greens",
-    "garlic-noodle",
+    "bread-egg",
+    "shrimp-tomato",
+    "peanut-noodle",
+    "air-fryer-lemon-butter-salmon"
+  ],
+  "ginger": [
+    "garlic-greens",
+    "fish-boil",
+    "peanut-noodle",
+    "rice-cooker-hainanese-chicken-rice"
+  ],
+  "pepper": [
+    "garlic-greens",
+    "pork-cabbage",
+    "shrimp-greens",
+    "potato-soup",
+    "bread-egg",
+    "cucumber-salad",
+    "mushroom-egg",
     "tofu-greens",
     "shrimp-tomato",
-    "pasta-tomato"
+    "fish-boil",
+    "potato-egg",
+    "potato-mash",
+    "pasta-tomato",
+    "air-fryer-lemon-butter-salmon"
   ],
   "cabbage": [
     "cabbage-egg",
     "pork-cabbage",
+    "glass-noodle-soup",
+    "carrot-salad",
     "cabbage-soup"
   ],
   "chicken": [
     "chicken-carrot",
-    "chicken-soup"
+    "chicken-soup",
+    "rice-cooker-hainanese-chicken-rice"
   ],
-  "pork": [
+  "chayote": [
+    "chicken-carrot"
+  ],
+  "ground-pork": [
     "pork-cabbage",
-    "pumpkin-soup",
     "potato-soup",
     "cabbage-soup"
-  ],
-  "fish-sauce": [
-    "pork-cabbage",
-    "cucumber-salad",
-    "shrimp-tomato"
   ],
   "beef": [
     "beef-tomato"
   ],
+  "onion": [
+    "beef-tomato",
+    "bread-egg",
+    "cucumber-salad",
+    "carrot-salad"
+  ],
   "shrimp": [
     "shrimp-greens",
+    "pumpkin-soup",
     "shrimp-tomato",
     "shrimp-noodle"
+  ],
+  "bok-choy": [
+    "shrimp-greens",
+    "tofu-greens",
+    "shrimp-noodle"
+  ],
+  "chili": [
+    "shrimp-greens",
+    "carrot-salad",
+    "mushroom-egg",
+    "fish-boil"
   ],
   "pumpkin": [
     "pumpkin-soup",
     "coconut-pumpkin"
   ],
+  "water": [
+    "pumpkin-soup",
+    "potato-soup",
+    "cucumber-salad",
+    "glass-noodle-soup",
+    "shrimp-tomato",
+    "tomato-soup",
+    "coconut-pumpkin",
+    "peanut-noodle",
+    "cabbage-soup",
+    "egg-steam",
+    "chicken-soup",
+    "shrimp-noodle",
+    "rice-cooker-cheese-flan",
+    "air-fryer-lemon-butter-salmon",
+    "rice-cooker-hainanese-chicken-rice"
+  ],
   "potato": [
     "potato-soup",
+    "bread-egg",
     "potato-egg",
     "potato-mash",
+    "pasta-tomato",
     "chicken-soup"
-  ],
-  "oats": [
-    "oatmeal-banana"
-  ],
-  "banana": [
-    "oatmeal-banana",
-    "yogurt-banana"
-  ],
-  "milk": [
-    "oatmeal-banana",
-    "potato-mash"
-  ],
-  "yogurt": [
-    "oatmeal-banana",
-    "yogurt-banana"
   ],
   "bread": [
     "bread-egg"
   ],
+  "chili-sauce": [
+    "bread-egg",
+    "peanut-noodle"
+  ],
   "cucumber": [
     "cucumber-salad"
   ],
-  "lime": [
+  "vinegar": [
     "cucumber-salad",
-    "carrot-salad",
-    "peanut-noodle"
+    "carrot-salad"
   ],
-  "chili": [
+  "dill": [
     "cucumber-salad",
-    "tofu-boil",
-    "peanut-noodle"
+    "fish-boil"
+  ],
+  "mint": [
+    "cucumber-salad"
   ],
   "rice": [
-    "fried-rice"
+    "fried-rice",
+    "rice-cooker-hainanese-chicken-rice"
+  ],
+  "spinach": [
+    "garlic-noodle"
   ],
   "glass-noodle": [
     "glass-noodle-stir",
     "glass-noodle-soup"
   ],
-  "bean-sprout": [
-    "glass-noodle-stir",
-    "glass-noodle-soup"
+  "rice-stick-noodle": [
+    "glass-noodle-stir"
   ],
-  "quail-egg": [
-    "glass-noodle-soup"
+  "bean-sprout": [
+    "glass-noodle-stir"
+  ],
+  "dried-mushroom": [
+    "glass-noodle-stir"
+  ],
+  "mushroom": [
+    "glass-noodle-stir",
+    "glass-noodle-soup",
+    "mushroom-egg"
+  ],
+  "leek": [
+    "glass-noodle-stir"
+  ],
+  "vegan-stock-cube": [
+    "glass-noodle-stir",
+    "coconut-pumpkin",
+    "pasta-tomato"
+  ],
+  "lemongrass": [
+    "carrot-salad",
+    "air-fryer-honey-chicken-feet"
+  ],
+  "lime": [
+    "carrot-salad",
+    "peanut-noodle",
+    "rice-cooker-cheese-flan",
+    "rice-cooker-yogurt-sponge",
+    "air-fryer-lemon-butter-salmon"
+  ],
+  "rau-ram": [
+    "carrot-salad"
   ],
   "peanut": [
     "carrot-salad",
     "peanut-noodle"
   ],
-  "mushroom": [
+  "vegan-fish-sauce": [
+    "carrot-salad"
+  ],
+  "chicken-immature-eggs": [
     "mushroom-egg"
   ],
-  "fish": [
-    "fish-boil"
+  "oyster-sauce": [
+    "mushroom-egg",
+    "tofu-greens",
+    "fish-boil",
+    "air-fryer-honey-chicken-feet",
+    "air-fryer-lemon-butter-salmon"
   ],
-  "ginger": [
+  "kaffir-lime-leaf": [
+    "mushroom-egg"
+  ],
+  "cooking-wine": [
+    "tofu-greens",
+    "air-fryer-lemon-butter-salmon"
+  ],
+  "sesame-oil": [
+    "tofu-greens",
+    "peanut-noodle"
+  ],
+  "cornstarch": [
+    "tofu-greens",
+    "rice-cooker-yogurt-sponge"
+  ],
+  "fish": [
     "fish-boil"
   ],
   "coconut-milk": [
     "coconut-pumpkin"
   ],
+  "culantro": [
+    "coconut-pumpkin"
+  ],
+  "pasta": [
+    "peanut-noodle",
+    "pasta-tomato"
+  ],
+  "bell-pepper": [
+    "peanut-noodle"
+  ],
+  "honey": [
+    "peanut-noodle",
+    "air-fryer-honey-chicken-feet"
+  ],
   "butter": [
-    "potato-mash"
+    "potato-mash",
+    "rice-cooker-cheese-flan",
+    "air-fryer-lemon-butter-salmon"
+  ],
+  "milk": [
+    "potato-mash",
+    "rice-cooker-cheese-flan",
+    "rice-cooker-yogurt-sponge"
   ],
   "corn": [
     "corn-egg"
   ],
-  "pasta": [
+  "ketchup": [
     "pasta-tomato"
+  ],
+  "condensed-milk": [
+    "rice-cooker-cheese-flan"
   ],
   "cheese": [
-    "pasta-tomato"
+    "rice-cooker-cheese-flan",
+    "air-fryer-sweet-potato-cheese-sticks"
   ],
-  "onion": [
-    "chicken-soup"
+  "vanilla": [
+    "rice-cooker-cheese-flan",
+    "rice-cooker-yogurt-sponge"
+  ],
+  "flour": [
+    "rice-cooker-yogurt-sponge"
+  ],
+  "yogurt": [
+    "rice-cooker-yogurt-sponge"
+  ],
+  "chicken-foot": [
+    "air-fryer-honey-chicken-feet"
+  ],
+  "shrimp-satay": [
+    "air-fryer-honey-chicken-feet"
+  ],
+  "bbq-sauce": [
+    "air-fryer-honey-chicken-feet"
+  ],
+  "salmon": [
+    "air-fryer-lemon-butter-salmon"
+  ],
+  "mixed-herbs": [
+    "air-fryer-lemon-butter-salmon"
+  ],
+  "sweet-potato": [
+    "air-fryer-sweet-potato-cheese-sticks"
+  ],
+  "rice-flour": [
+    "air-fryer-sweet-potato-cheese-sticks"
+  ],
+  "margarine": [
+    "air-fryer-sweet-potato-cheese-sticks"
+  ],
+  "ginger-root": [
+    "rice-cooker-hainanese-chicken-rice"
+  ],
+  "rock-sugar": [
+    "rice-cooker-hainanese-chicken-rice"
+  ],
+  "pandan-leaf": [
+    "rice-cooker-hainanese-chicken-rice"
   ]
 }
